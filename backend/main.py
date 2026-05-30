@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine
 from sqlalchemy.schema import CreateTable
+from sqlalchemy.dialects import postgresql as pg_dialect
 
 from backend.core.database import Base, engine
 from backend.models import User, RoomType, Room, Client, Reservation, Invoice
@@ -22,15 +23,12 @@ async def lifespan(app: FastAPI):
     schema_dir.mkdir(exist_ok=True)
     schema_file = schema_dir / "schema.sql"
     
-    # Create PostgreSQL engine for DDL generation
-    postgres_engine = create_engine("postgresql://", strategy='mock', executor=lambda sql, *_: None)
-    
     with open(schema_file, "w") as f:
         f.write("-- Generated SQL schema for InnDesk PMS\n\n")
-        
+        dialect = pg_dialect.dialect()
         for table in Base.metadata.sorted_tables:
-            ddl = CreateTable(table).compile(postgres_engine)
-            f.write(f"{ddl};\n\n")
+            ddl = str(CreateTable(table).compile(dialect=dialect))
+            f.write(f"{ddl.strip()};\n\n")
     
     yield
     

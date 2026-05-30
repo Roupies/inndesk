@@ -1,6 +1,5 @@
 -- Generated SQL schema for InnDesk PMS
 
-
 CREATE TABLE clients (
 	id SERIAL NOT NULL, 
 	first_name VARCHAR(100) NOT NULL, 
@@ -13,10 +12,7 @@ CREATE TABLE clients (
 	gdpr_consent_at TIMESTAMP WITH TIME ZONE, 
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT now(), 
 	PRIMARY KEY (id)
-)
-
-;
-
+);
 
 CREATE TABLE room_types (
 	id SERIAL NOT NULL, 
@@ -27,10 +23,7 @@ CREATE TABLE room_types (
 	PRIMARY KEY (id), 
 	CONSTRAINT check_price_positive CHECK (price_per_night > 0), 
 	CONSTRAINT check_max_occupancy_positive CHECK (max_occupancy > 0)
-)
-
-;
-
+);
 
 CREATE TABLE users (
 	id SERIAL NOT NULL, 
@@ -42,10 +35,7 @@ CREATE TABLE users (
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT now(), 
 	PRIMARY KEY (id), 
 	CONSTRAINT check_role CHECK (role IN ('admin', 'receptionist'))
-)
-
-;
-
+);
 
 CREATE TABLE rooms (
 	id SERIAL NOT NULL, 
@@ -57,10 +47,7 @@ CREATE TABLE rooms (
 	PRIMARY KEY (id), 
 	CONSTRAINT check_status CHECK (status IN ('available', 'occupied', 'dirty', 'cleaning', 'maintenance')), 
 	FOREIGN KEY(room_type_id) REFERENCES room_types (id)
-)
-
-;
-
+);
 
 CREATE TABLE reservations (
 	id SERIAL NOT NULL, 
@@ -84,10 +71,7 @@ CREATE TABLE reservations (
 	FOREIGN KEY(client_id) REFERENCES clients (id), 
 	FOREIGN KEY(room_id) REFERENCES rooms (id), 
 	FOREIGN KEY(created_by) REFERENCES users (id)
-)
-
-;
-
+);
 
 CREATE TABLE invoices (
 	id SERIAL NOT NULL, 
@@ -105,7 +89,5 @@ CREATE TABLE invoices (
 	CONSTRAINT check_payment_status CHECK (payment_status IN ('pending', 'paid')), 
 	UNIQUE (reservation_id), 
 	FOREIGN KEY(reservation_id) REFERENCES reservations (id)
-)
-
-;
+);
 

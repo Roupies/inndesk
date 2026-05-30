@@ -76,6 +76,10 @@ HARD: Every <input> and <select> has a matching <label for="...">
 HARD: outline: none is forbidden without an explicit :focus-visible replacement
 ```
 
+Note: localStorage is permitted in local dev (not sandboxed).
+The sandbox restriction applies to iframe-embedded deployments only.
+Token and user data use localStorage intentionally.
+
 ### Generation discipline
 ```
 HARD: Do not rewrite working code unless explicitly asked

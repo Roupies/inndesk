@@ -43,7 +43,6 @@ async function apiFetch(path, options = {}) {
 
         return await response.json();
     } catch (error) {
-        console.error('API Error:', error.message, 'Path:', path, 'Options:', options);
         throw error;
     }
 }
@@ -75,7 +74,6 @@ async function ensureCurrentUser() {
             user = await apiFetch('/users/me');
             setCurrentUser(user);
         } catch (error) {
-            console.error('Failed to fetch current user:', error);
         }
     }
     return user;
