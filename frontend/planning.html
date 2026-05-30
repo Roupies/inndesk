@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Planning</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        .planning-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-6);
+            padding: var(--space-4);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+
+        .planning-navigation {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .planning-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .planning-cell {
+            background: var(--surface);
+            padding: var(--space-2);
+            min-height: 60px;
+            position: relative;
+        }
+
+        .planning-header-cell {
+            background: var(--bg);
+            font-weight: 600;
+            font-size: var(--text-sm);
+            padding: var(--space-3);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .planning-room-header {
+            background: var(--bg);
+            font-weight: 600;
+            font-size: var(--text-sm);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: var(--space-3);
+        }
+
+        .planning-today {
+            background: rgba(26, 95, 122, 0.05);
+        }
+
+        .planning-weekend {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .reservation-bar {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            border-radius: var(--radius-sm);
+            padding: var(--space-1);
+            font-size: var(--text-xs);
+            font-weight: 500;
+            color: white;
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .reservation-bar:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .reservation-bar.status-confirmed {
+            background: var(--color-confirmed);
+        }
+
+        .reservation-bar.status-checked-in {
+            background: var(--color-checked-in);
+        }
+
+        .reservation-bar.status-checked-out {
+            background: var(--color-checked-out);
+            color: var(--text);
+        }
+
+        .room-status-available {
+            background: rgba(34, 197, 94, 0.02);
+        }
+
+        .room-status-occupied {
+            background: rgba(59, 130, 246, 0.02);
+        }
+
+        .room-status-maintenance {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .room-status-dirty {
+            background: rgba(249, 115, 22, 0.02);
+        }
+
+        .planning-loading {
+            display: grid;
+            grid-template-columns: 120px repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .planning-skeleton-cell {
+            background: var(--surface);
+            padding: var(--space-3);
+            min-height: 60px;
+        }
+
+        @media (max-width: 768px) {
+            .planning-grid {
+                grid-template-columns: 100px repeat(7, minmax(80px, 1fr));
+                font-size: var(--text-xs);
+            }
+            
+            .planning-header {
+                flex-direction: column;
+                gap: var(--space-3);
+            }
+
+            .planning-navigation {
+                flex-direction: column;
+                width: 100%;
+                gap: var(--space-2);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+            
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/app/planning.html" class="nav-link active">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/app/rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Planning</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Vue Gantt des réservations</p>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Planning Header -->
+            <div class="planning-header">
+                <div class="planning-navigation">
+                    <button class="btn btn-outline btn-sm" id="prevWeekBtn">
+                        <i data-lucide="chevron-left" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+                        Semaine précédente
+                    </button>
+                    <button class="btn btn-outline btn-sm" id="nextWeekBtn">
+                        Semaine suivante
+                        <i data-lucide="chevron-right" style="width: 16px; height: 16px; margin-left: 4px;"></i>
+                    </button>
+                </div>
+                
+                <h2 id="weekLabel" style="font-weight: 600; margin: 0; text-align: center;">Chargement...</h2>
+                
+                <button class="btn btn-primary btn-sm" id="todayBtn">
+                    <i data-lucide="calendar" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+                    Aujourd'hui
+                </button>
+            </div>
+
+            <!-- Planning Grid -->
+            <div id="planningContainer">
+                <div class="planning-loading">
+                    <div class="planning-skeleton-cell">
+                        <div class="skeleton skeleton-text" style="height: 1rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 0.8rem; width: 70%;"></div>
+                    </div>
+                    <div class="planning-skeleton-cell"><div class="skeleton skeleton-text" style="height: 1rem;"></div></div>
+                    <div class="planning-skeleton-cell"><div class="skeleton skeleton-text" style="height: 1rem;"></div></div>
+                    <div class="planning-skeleton-cell"><div class="skeleton skeleton-text" style="height: 1rem;"></div></div>
+                    <div class="planning-skeleton-cell"><div class="skeleton skeleton-text" style="height: 1rem;"></div></div>
+                    <div class="planning-skeleton-cell"><div class="skeleton skeleton-text" style="height: 1rem;"></div></div>
+                    <div class="planning-skeleton-cell"><div class="skeleton skeleton-text" style="height: 1rem;"></div></div>
+                    <div class="planning-skeleton-cell"><div class="skeleton skeleton-text" style="height: 1rem;"></div></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script>
+        // Protect page and initialize
+        InnDesk.auth.redirectIfNotAuth();
+
+        // State management
+        let currentWeekStart = new Date();
+        let rooms = [];
+        let reservations = [];
+
+        // Set current week to Monday
+        function setToMonday(date) {
+            const day = date.getDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            date.setDate(date.getDate() + diff);
+            return date;
+        }
+
+        // Initialize current week start
+        setToMonday(currentWeekStart);
+
+        // Load user information
+        async function loadUserInfo() {
+            try {
+                const currentUser = await InnDesk.auth.ensureCurrentUser();
+                if (currentUser) {
+                    document.getElementById('userName').textContent = currentUser.full_name;
+                    document.getElementById('userRole').textContent = InnDesk.utils.statusLabel(currentUser.role);
+                } else {
+                    document.getElementById('userName').textContent = 'Utilisateur';
+                    document.getElementById('userRole').textContent = '';
+                }
+            } catch (error) {
+                document.getElementById('userName').textContent = 'Utilisateur';
+                document.getElementById('userRole').textContent = '';
+            }
+        }
+        loadUserInfo();
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIconLight = document.getElementById('themeIconLight');
+        const themeIconDark = document.getElementById('themeIconDark');
+
+        function updateThemeIcon() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'light') {
+                themeIconLight.style.display = 'none';
+                themeIconDark.style.display = 'block';
+            } else {
+                themeIconLight.style.display = 'block';
+                themeIconDark.style.display = 'none';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            InnDesk.utils.toggleTheme();
+            updateThemeIcon();
+        });
+
+        updateThemeIcon();
+
+        // Logout functionality
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            InnDesk.api.auth.logout();
+        });
+
+        // Format week label
+        function formatWeekLabel(startDate) {
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + 6);
+
+            const startStr = InnDesk.utils.formatShortDate(startDate.toISOString());
+            const endStr = InnDesk.utils.formatShortDate(endDate.toISOString());
+
+            return `${startStr} – ${endStr}`;
+        }
+
+        // Update week label and URL hash
+        function updateWeekLabel() {
+            const weekLabel = formatWeekLabel(currentWeekStart);
+            document.getElementById('weekLabel').textContent = weekLabel;
+            
+            // Update URL hash
+            const hashDate = currentWeekStart.toISOString().split('T')[0];
+            window.location.hash = hashDate;
+        }
+
+        // Check if date is today
+        function isToday(date) {
+            const today = new Date();
+            const checkDate = new Date(date);
+            return checkDate.toDateString() === today.toDateString();
+        }
+
+        // Check if date is weekend
+        function isWeekend(date) {
+            const day = new Date(date).getDay();
+            return day === 0 || day === 6;
+        }
+
+        // Generate week days
+        function getWeekDays() {
+            const days = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                days.push(date);
+            }
+            return days;
+        }
+
+        // Get day name with date
+        function getDayLabel(date) {
+            const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+            const dayName = dayNames[date.getDay()];
+            const dayNumber = date.getDate();
+            return `${dayName} ${dayNumber}`;
+        }
+
+        // Check if reservation overlaps with day
+        function reservationOverlapsDay(reservation, day) {
+            const checkIn = new Date(reservation.check_in_date);
+            const checkOut = new Date(reservation.check_out_date);
+            const dayStart = new Date(day);
+            const dayEnd = new Date(day);
+            dayEnd.setDate(dayEnd.getDate() + 1);
+
+            return checkIn < dayEnd && checkOut > dayStart;
+        }
+
+        // Load planning data
+        async function loadPlanningData() {
+            try {
+                const [roomsData, reservationsData] = await Promise.all([
+                    InnDesk.api.rooms.getAll(),
+                    InnDesk.api.reservations.getAll({ limit: 200 })
+                ]);
+
+                rooms = roomsData.sort((a, b) => {
+                    if (a.floor !== b.floor) return a.floor - b.floor;
+                    return a.number.localeCompare(b.number, undefined, { numeric: true });
+                });
+
+                reservations = reservationsData.filter(res => 
+                    res.status !== 'cancelled' && res.status !== 'no_show'
+                );
+
+                renderPlanningGrid();
+
+            } catch (error) {
+                const container = document.getElementById('planningContainer');
+                container.innerHTML = `
+                    <div class="error-message" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+                        Impossible de charger le planning
+                    </div>
+                `;
+            }
+        }
+
+        // Render planning grid
+        function renderPlanningGrid() {
+            const container = document.getElementById('planningContainer');
+            const weekDays = getWeekDays();
+
+            const grid = document.createElement('div');
+            grid.className = 'planning-grid';
+
+            // Header row
+            grid.appendChild(createHeaderCell('Chambres'));
+            weekDays.forEach(day => {
+                const cell = createHeaderCell(getDayLabel(day));
+                if (isToday(day)) {
+                    cell.classList.add('planning-today');
+                }
+                if (isWeekend(day)) {
+                    cell.classList.add('planning-weekend');
+                }
+                grid.appendChild(cell);
+            });
+
+            // Room rows
+            rooms.forEach(room => {
+                // Room header
+                const roomHeader = document.createElement('div');
+                roomHeader.className = 'planning-room-header';
+                roomHeader.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 2px;">
+                        ${room.number}
+                    </div>
+                    <div style="font-size: var(--text-xs); color: var(--text-secondary);">
+                        ${room.room_type?.name || 'Type inconnu'}
+                    </div>
+                `;
+                grid.appendChild(roomHeader);
+
+                // Day cells for this room
+                weekDays.forEach(day => {
+                    const cell = document.createElement('div');
+                    cell.className = `planning-cell room-status-${room.status}`;
+                    
+                    if (isToday(day)) {
+                        cell.classList.add('planning-today');
+                    }
+                    if (isWeekend(day)) {
+                        cell.classList.add('planning-weekend');
+                    }
+
+                    // Find reservation for this room and day
+                    const roomReservation = reservations.find(res => 
+                        res.room.id === room.id && reservationOverlapsDay(res, day)
+                    );
+
+                    if (roomReservation) {
+                        const reservationBar = document.createElement('div');
+                        reservationBar.className = `reservation-bar status-${roomReservation.status}`;
+                        reservationBar.textContent = roomReservation.client?.last_name || 'Client';
+                        reservationBar.title = `${roomReservation.client?.first_name || ''} ${roomReservation.client?.last_name || 'Client'} - ${InnDesk.utils.formatShortDate(roomReservation.check_in_date)} → ${InnDesk.utils.formatShortDate(roomReservation.check_out_date)}`;
+                        
+                        reservationBar.addEventListener('click', () => {
+                            alert(`Réservation #${roomReservation.id}\nClient: ${roomReservation.client?.first_name || ''} ${roomReservation.client?.last_name || 'Client'}\nChambre: ${room.number}\nArrivée: ${InnDesk.utils.formatShortDate(roomReservation.check_in_date)}\nDépart: ${InnDesk.utils.formatShortDate(roomReservation.check_out_date)}\nStatut: ${InnDesk.utils.statusLabel(roomReservation.status)}`);
+                        });
+                        
+                        cell.appendChild(reservationBar);
+                    }
+
+                    grid.appendChild(cell);
+                });
+            });
+
+            container.innerHTML = '';
+            container.appendChild(grid);
+        }
+
+        // Create header cell
+        function createHeaderCell(text) {
+            const cell = document.createElement('div');
+            cell.className = 'planning-header-cell';
+            cell.textContent = text;
+            return cell;
+        }
+
+        // Navigation functions
+        function goToPreviousWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            updateWeekLabel();
+            renderPlanningGrid();
+        }
+
+        function goToNextWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            updateWeekLabel();
+            renderPlanningGrid();
+        }
+
+        function goToToday() {
+            currentWeekStart = new Date();
+            setToMonday(currentWeekStart);
+            updateWeekLabel();
+            renderPlanningGrid();
+        }
+
+        // Event listeners
+        document.getElementById('prevWeekBtn').addEventListener('click', goToPreviousWeek);
+        document.getElementById('nextWeekBtn').addEventListener('click', goToNextWeek);
+        document.getElementById('todayBtn').addEventListener('click', goToToday);
+
+        // Handle URL hash on page load
+        if (window.location.hash) {
+            const hashDate = window.location.hash.substring(1);
+            const parsedDate = new Date(hashDate);
+            if (!isNaN(parsedDate)) {
+                currentWeekStart = parsedDate;
+                setToMonday(currentWeekStart);
+            }
+        }
+
+        // Initialize
+        updateWeekLabel();
+        loadPlanningData();
+
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

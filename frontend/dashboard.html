@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Tableau de bord</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+            
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link active">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./planning.html" class="nav-link">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Tableau de bord</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;" id="currentDate"></p>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- KPI Cards Section -->
+            <section class="mb-8">
+                <div class="grid grid-cols-4 gap-6">
+                    <div class="kpi-card" id="availableRoomsCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                    <div class="kpi-card" id="arrivalsCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                    <div class="kpi-card" id="departuresCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                    <div class="kpi-card" id="occupancyCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Active Reservations Section -->
+            <section class="mb-8">
+                <h2 style="font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-4);">Réservations actives</h2>
+                <div class="card">
+                    <div class="table-container" style="overflow-x: auto;">
+                        <table class="table" id="reservationsTable">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Chambre</th>
+                                    <th>Arrivée</th>
+                                    <th>Départ</th>
+                                    <th>Statut</th>
+                                    <th>Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Skeleton loading state -->
+                                <tr>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                    <td><div class="skeleton skeleton-text"></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Room Status Grid Section -->
+            <section class="mb-8">
+                <h2 style="font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-4);">État des chambres</h2>
+                <div class="grid grid-cols-4 gap-4" id="roomsGrid">
+                    <!-- Skeleton loading cards -->
+                    <div class="room-card">
+                        <div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text"></div>
+                    </div>
+                    <div class="room-card">
+                        <div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text"></div>
+                    </div>
+                    <div class="room-card">
+                        <div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text"></div>
+                    </div>
+                    <div class="room-card">
+                        <div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Activity Section -->
+            <section class="mb-8">
+                <h2 style="font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-4);">Activité récente</h2>
+                <div class="card">
+                    <div id="recentActivity">
+                        <!-- Skeleton loading state -->
+                        <div class="flex items-center" style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                            <div style="flex: 1;">
+                                <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 60%;"></div>
+                                <div class="skeleton skeleton-text" style="width: 40%;"></div>
+                            </div>
+                            <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                        </div>
+                        <div class="flex items-center" style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+                            <div style="flex: 1;">
+                                <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 60%;"></div>
+                                <div class="skeleton skeleton-text" style="width: 40%;"></div>
+                            </div>
+                            <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                        </div>
+                        <div class="flex items-center" style="padding: 12px 0;">
+                            <div style="flex: 1;">
+                                <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 60%;"></div>
+                                <div class="skeleton skeleton-text" style="width: 40%;"></div>
+                            </div>
+                            <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script>
+        // Protect page and initialize
+        InnDesk.auth.redirectIfNotAuth();
+
+        // Initialize current date
+        document.getElementById('currentDate').textContent = InnDesk.utils.formatDate(new Date().toISOString());
+
+        // Load user information
+        async function loadUserInfo() {
+            try {
+                const currentUser = await InnDesk.auth.ensureCurrentUser();
+                if (currentUser) {
+                    document.getElementById('userName').textContent = currentUser.full_name;
+                    document.getElementById('userRole').textContent = InnDesk.utils.statusLabel(currentUser.role);
+                } else {
+                    document.getElementById('userName').textContent = 'Utilisateur';
+                    document.getElementById('userRole').textContent = '';
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                document.getElementById('userName').textContent = 'Utilisateur';
+                document.getElementById('userRole').textContent = '';
+            }
+        }
+        loadUserInfo();
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIconLight = document.getElementById('themeIconLight');
+        const themeIconDark = document.getElementById('themeIconDark');
+
+        function updateThemeIcon() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'light') {
+                themeIconLight.style.display = 'none';
+                themeIconDark.style.display = 'block';
+            } else {
+                themeIconLight.style.display = 'block';
+                themeIconDark.style.display = 'none';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            InnDesk.utils.toggleTheme();
+            updateThemeIcon();
+        });
+
+        // Initialize theme icon
+        updateThemeIcon();
+
+        // Logout functionality
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            InnDesk.api.auth.logout();
+        });
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                await Promise.all([
+                    loadKPIs(),
+                    loadActiveReservations(),
+                    loadRoomStatus(),
+                    loadRecentActivity()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Load KPI data
+        async function loadKPIs() {
+            try {
+                const [rooms, reservations] = await Promise.all([
+                    InnDesk.api.rooms.getAll(),
+                    InnDesk.api.reservations.getAll({ limit: 100 })
+                ]);
+
+                // Calculate KPIs
+                const availableRooms = rooms.filter(room => room.status === 'available').length;
+                const occupiedRooms = rooms.filter(room => room.status === 'occupied').length;
+                const totalRooms = rooms.length;
+                const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+                const today = new Date().toISOString().split('T')[0];
+                const arrivalsToday = reservations.filter(res => 
+                    res.status === 'confirmed' && res.check_in_date === today
+                ).length;
+                const departuresToday = reservations.filter(res => 
+                    res.status === 'checked_in' && res.check_out_date === today
+                ).length;
+
+                // Update KPI cards
+                document.getElementById('availableRoomsCard').innerHTML = `
+                    <div class="kpi-value">${availableRooms}</div>
+                    <div class="kpi-label">Chambres disponibles</div>
+                `;
+
+                document.getElementById('arrivalsCard').innerHTML = `
+                    <div class="kpi-value">${arrivalsToday}</div>
+                    <div class="kpi-label">Arrivées aujourd'hui</div>
+                `;
+
+                document.getElementById('departuresCard').innerHTML = `
+                    <div class="kpi-value">${departuresToday}</div>
+                    <div class="kpi-label">Départs aujourd'hui</div>
+                `;
+
+                document.getElementById('occupancyCard').innerHTML = `
+                    <div class="kpi-value">${occupancyRate}%</div>
+                    <div class="kpi-label">Taux d'occupation</div>
+                `;
+
+            } catch (error) {
+                console.error('Error loading KPIs:', error);
+                ['availableRoomsCard', 'arrivalsCard', 'departuresCard', 'occupancyCard'].forEach(id => {
+                    InnDesk.utils.showError(document.getElementById(id));
+                });
+            }
+        }
+
+        // Load active reservations
+        async function loadActiveReservations() {
+            try {
+                const reservations = await InnDesk.api.reservations.getAll({ 
+                    limit: 8,
+                    status: 'confirmed,checked_in'
+                });
+
+                const tbody = document.querySelector('#reservationsTable tbody');
+                tbody.innerHTML = '';
+
+                if (reservations.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center" style="color: var(--text-muted); font-style: italic;">
+                                Aucune réservation active
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    reservations
+                        .sort((a, b) => new Date(a.check_in_date) - new Date(b.check_in_date))
+                        .forEach(reservation => {
+                            const row = document.createElement('tr');
+                            
+                            // Create status badge
+                            const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
+                            
+                            row.innerHTML = `
+                                <td>${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}</td>
+                                <td>Chambre ${reservation.room?.number || '?'}</td>
+                                <td>${InnDesk.utils.formatShortDate(reservation.check_in_date)}</td>
+                                <td>${InnDesk.utils.formatShortDate(reservation.check_out_date)}</td>
+                                <td></td>
+                                <td>${InnDesk.utils.formatCurrency(reservation.total_amount)}</td>
+                            `;
+                            
+                            // Add status badge
+                            row.cells[4].appendChild(statusBadge);
+                            
+                            tbody.appendChild(row);
+                        });
+                }
+
+            } catch (error) {
+                console.error('Error loading reservations:', error);
+                const tbody = document.querySelector('#reservationsTable tbody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="error-message">
+                            Erreur lors du chargement des réservations
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Load room status
+        async function loadRoomStatus() {
+            try {
+                const rooms = await InnDesk.api.rooms.getAll();
+                
+                const roomsGrid = document.getElementById('roomsGrid');
+                roomsGrid.innerHTML = '';
+
+                if (rooms.length === 0) {
+                    InnDesk.utils.showError(roomsGrid, 'Aucune chambre trouvée');
+                } else {
+                    // Sort rooms by floor then number
+                    rooms.sort((a, b) => {
+                        if (a.floor !== b.floor) return a.floor - b.floor;
+                        return a.number.localeCompare(b.number, undefined, { numeric: true });
+                    });
+
+                    rooms.forEach(room => {
+                        const roomCard = document.createElement('div');
+                        roomCard.className = `room-card status-${room.status}`;
+                        
+                        roomCard.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 4px;">
+                                Chambre ${room.number}
+                            </div>
+                            <div style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 8px;">
+                                Étage ${room.floor} • ${room.room_type?.name || 'Type inconnu'}
+                            </div>
+                            <div></div>
+                        `;
+                        
+                        // Add status badge
+                        const statusBadge = InnDesk.utils.createStatusBadge(room.status);
+                        roomCard.lastElementChild.appendChild(statusBadge);
+                        
+                        roomsGrid.appendChild(roomCard);
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error loading rooms:', error);
+                InnDesk.utils.showError(document.getElementById('roomsGrid'));
+            }
+        }
+
+        // Load recent activity
+        async function loadRecentActivity() {
+            try {
+                const reservations = await InnDesk.api.reservations.getAll({ 
+                    limit: 5 
+                });
+
+                const recentActivity = document.getElementById('recentActivity');
+                recentActivity.innerHTML = '';
+
+                if (reservations.length === 0) {
+                    InnDesk.utils.showError(recentActivity, 'Aucune activité récente');
+                } else {
+                    // Sort by creation date (most recent first)
+                    reservations
+                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                        .slice(0, 5)
+                        .forEach((reservation, index) => {
+                            const activityItem = document.createElement('div');
+                            activityItem.className = 'flex items-center';
+                            activityItem.style.cssText = `
+                                padding: 12px 0; 
+                                ${index < 4 ? 'border-bottom: 1px solid var(--border);' : ''}
+                            `;
+                            
+                            const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
+                            
+                            activityItem.innerHTML = `
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 500; margin-bottom: 2px;">
+                                        ${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'} - Chambre ${reservation.room?.number || '?'}
+                                    </div>
+                                    <div style="font-size: var(--text-xs); color: var(--text-secondary);">
+                                        ${InnDesk.utils.formatDateTime(reservation.created_at)}
+                                    </div>
+                                </div>
+                                <div style="margin-left: 12px;"></div>
+                            `;
+                            
+                            // Add status badge
+                            activityItem.lastElementChild.appendChild(statusBadge);
+                            
+                            recentActivity.appendChild(activityItem);
+                        });
+                }
+
+            } catch (error) {
+                console.error('Error loading recent activity:', error);
+                InnDesk.utils.showError(document.getElementById('recentActivity'));
+            }
+        }
+
+        // Load all data immediately (DOM is ready since script is at bottom)
+        loadDashboardData();
+    </script>
+</body>
+</html>

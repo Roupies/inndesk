@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Chambres</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        .rooms-stats {
+            display: flex;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+            flex-wrap: wrap;
+        }
+
+        .rooms-stat-chip {
+            padding: var(--space-2) var(--space-3);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-sm);
+            font-weight: 500;
+        }
+
+        .rooms-stat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .filters-section {
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-row {
+            display: flex;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+
+        .filter-pill {
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            color: var(--text);
+            text-decoration: none;
+            font-size: var(--text-sm);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--space-4);
+        }
+
+        .room-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .room-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .room-card.status-available {
+            border-left-color: var(--color-available);
+        }
+
+        .room-card.status-occupied {
+            border-left-color: var(--color-occupied);
+        }
+
+        .room-card.status-dirty {
+            border-left-color: var(--color-dirty);
+        }
+
+        .room-card.status-cleaning {
+            border-left-color: var(--color-cleaning);
+        }
+
+        .room-card.status-maintenance {
+            border-left-color: var(--color-maintenance);
+        }
+
+        .room-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-3);
+        }
+
+        .room-number {
+            font-size: var(--text-xl);
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .room-details {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+            margin-bottom: var(--space-3);
+        }
+
+        .room-detail-item {
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+        }
+
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: var(--space-2);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .modal-content {
+            padding: var(--space-6);
+        }
+
+        .room-info-section {
+            margin-bottom: var(--space-6);
+        }
+
+        .room-info-section h3 {
+            font-size: var(--text-base);
+            font-weight: 600;
+            margin: 0 0 var(--space-3) 0;
+            color: var(--text);
+        }
+
+        .room-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .room-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+
+        .room-info-label {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .room-info-value {
+            font-size: var(--text-base);
+            color: var(--text);
+        }
+
+        .reservations-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .reservation-item {
+            padding: var(--space-3);
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        .reservation-client {
+            font-weight: 500;
+            margin-bottom: var(--space-1);
+        }
+
+        .reservation-dates {
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        @media (max-width: 768px) {
+            .rooms-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .room-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-row {
+                flex-direction: column;
+            }
+
+            .rooms-stats {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+            
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/app/planning.html" class="nav-link">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/app/rooms.html" class="nav-link active">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Chambres</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Gestion des chambres et types</p>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Section -->
+            <div class="rooms-stats">
+                <div class="rooms-stat-chip" id="totalRoomsChip">
+                    <div class="skeleton skeleton-text" style="width: 120px; height: 1rem;"></div>
+                </div>
+                <div class="rooms-stat-chip" id="availableRoomsChip">
+                    <div class="skeleton skeleton-text" style="width: 120px; height: 1rem;"></div>
+                </div>
+                <div class="rooms-stat-chip" id="maintenanceRoomsChip">
+                    <div class="skeleton skeleton-text" style="width: 120px; height: 1rem;"></div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <h2 style="font-size: var(--text-lg); font-weight: 600; margin: 0 0 var(--space-4) 0;">Filtres</h2>
+                
+                <div class="filters-row">
+                    <div>
+                        <h3 style="font-size: var(--text-sm); font-weight: 600; margin: 0 0 var(--space-2) 0; color: var(--text-muted);">Statut</h3>
+                        <div class="filter-group" id="statusFilters">
+                            <button class="filter-pill active" data-filter="all">Tous</button>
+                            <button class="filter-pill" data-filter="available">Disponible</button>
+                            <button class="filter-pill" data-filter="occupied">Occupée</button>
+                            <button class="filter-pill" data-filter="maintenance">Maintenance</button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="font-size: var(--text-sm); font-weight: 600; margin: 0 0 var(--space-2) 0; color: var(--text-muted);">Type de chambre</h3>
+                        <div class="filter-group" id="typeFilters">
+                            <button class="filter-pill active" data-filter="all">Tous</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rooms Grid -->
+            <div class="rooms-grid" id="roomsGrid">
+                <!-- Loading skeleton -->
+                <div class="room-card">
+                    <div class="room-card-header">
+                        <div class="skeleton skeleton-text" style="width: 80px; height: 1.5rem;"></div>
+                        <div class="skeleton skeleton-text" style="width: 60px; height: 1rem;"></div>
+                    </div>
+                    <div class="room-details">
+                        <div class="skeleton skeleton-text" style="width: 100px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 120px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 140px; height: 0.9rem;"></div>
+                    </div>
+                </div>
+                <div class="room-card">
+                    <div class="room-card-header">
+                        <div class="skeleton skeleton-text" style="width: 80px; height: 1.5rem;"></div>
+                        <div class="skeleton skeleton-text" style="width: 60px; height: 1rem;"></div>
+                    </div>
+                    <div class="room-details">
+                        <div class="skeleton skeleton-text" style="width: 100px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 120px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 140px; height: 0.9rem;"></div>
+                    </div>
+                </div>
+                <div class="room-card">
+                    <div class="room-card-header">
+                        <div class="skeleton skeleton-text" style="width: 80px; height: 1.5rem;"></div>
+                        <div class="skeleton skeleton-text" style="width: 60px; height: 1rem;"></div>
+                    </div>
+                    <div class="room-details">
+                        <div class="skeleton skeleton-text" style="width: 100px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 120px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 140px; height: 0.9rem;"></div>
+                    </div>
+                </div>
+                <div class="room-card">
+                    <div class="room-card-header">
+                        <div class="skeleton skeleton-text" style="width: 80px; height: 1.5rem;"></div>
+                        <div class="skeleton skeleton-text" style="width: 60px; height: 1rem;"></div>
+                    </div>
+                    <div class="room-details">
+                        <div class="skeleton skeleton-text" style="width: 100px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 120px; height: 0.9rem; margin-bottom: 4px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 140px; height: 0.9rem;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Room Detail Modal -->
+    <div class="modal-overlay" id="roomModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Détails de la chambre</h2>
+                <button class="modal-close" id="modalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="room-info-section">
+                    <h3>Informations générales</h3>
+                    <div class="room-info-grid" id="roomInfoGrid">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="room-info-section" id="recentReservationsSection">
+                    <h3>Dernières réservations</h3>
+                    <div class="reservations-list" id="recentReservationsList">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script>
+        // Protect page and initialize
+        InnDesk.auth.redirectIfNotAuth();
+
+        // State
+        let rooms = [];
+        let roomTypes = [];
+        let reservations = [];
+        let activeStatusFilter = 'all';
+        let activeTypeFilter = 'all';
+
+        // Load user information
+        async function loadUserInfo() {
+            try {
+                const currentUser = await InnDesk.auth.ensureCurrentUser();
+                if (currentUser) {
+                    document.getElementById('userName').textContent = currentUser.full_name;
+                    document.getElementById('userRole').textContent = InnDesk.utils.statusLabel(currentUser.role);
+                } else {
+                    document.getElementById('userName').textContent = 'Utilisateur';
+                    document.getElementById('userRole').textContent = '';
+                }
+            } catch (error) {
+                document.getElementById('userName').textContent = 'Utilisateur';
+                document.getElementById('userRole').textContent = '';
+            }
+        }
+        loadUserInfo();
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIconLight = document.getElementById('themeIconLight');
+        const themeIconDark = document.getElementById('themeIconDark');
+
+        function updateThemeIcon() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'light') {
+                themeIconLight.style.display = 'none';
+                themeIconDark.style.display = 'block';
+            } else {
+                themeIconLight.style.display = 'block';
+                themeIconDark.style.display = 'none';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            InnDesk.utils.toggleTheme();
+            updateThemeIcon();
+        });
+
+        updateThemeIcon();
+
+        // Logout functionality
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            InnDesk.api.auth.logout();
+        });
+
+        // Load data
+        async function loadRoomsData() {
+            try {
+                const [roomsData, typesData, reservationsData] = await Promise.all([
+                    InnDesk.api.rooms.getAll(),
+                    InnDesk.api.rooms.getTypes(),
+                    InnDesk.api.reservations.getAll({ limit: 100 })
+                ]);
+
+                rooms = roomsData.sort((a, b) => {
+                    if (a.floor !== b.floor) return a.floor - b.floor;
+                    return a.number.localeCompare(b.number, undefined, { numeric: true });
+                });
+
+                roomTypes = typesData;
+                reservations = reservationsData;
+
+                updateStats();
+                populateTypeFilters();
+                renderRooms();
+
+            } catch (error) {
+                const grid = document.getElementById('roomsGrid');
+                grid.innerHTML = `
+                    <div class="error-message" style="grid-column: 1/-1; text-align: center; padding: var(--space-8); color: var(--text-muted);">
+                        Impossible de charger les chambres
+                    </div>
+                `;
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            const totalRooms = rooms.length;
+            const availableRooms = rooms.filter(r => r.status === 'available').length;
+            const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
+
+            document.getElementById('totalRoomsChip').innerHTML = `
+                Total chambres: <strong>${totalRooms}</strong>
+            `;
+
+            document.getElementById('availableRoomsChip').innerHTML = `
+                <div class="rooms-stat-dot" style="background: var(--color-available);"></div>
+                Disponibles: <strong>${availableRooms}</strong>
+            `;
+
+            document.getElementById('maintenanceRoomsChip').innerHTML = `
+                <div class="rooms-stat-dot" style="background: var(--color-maintenance);"></div>
+                En maintenance: <strong>${maintenanceRooms}</strong>
+            `;
+        }
+
+        // Populate type filters
+        function populateTypeFilters() {
+            const typeFiltersContainer = document.getElementById('typeFilters');
+            const existingAll = typeFiltersContainer.querySelector('[data-filter="all"]');
+            
+            roomTypes.forEach(type => {
+                const button = document.createElement('button');
+                button.className = 'filter-pill';
+                button.setAttribute('data-filter', type.id.toString());
+                button.textContent = type.name;
+                button.addEventListener('click', () => setTypeFilter(type.id.toString()));
+                typeFiltersContainer.appendChild(button);
+            });
+        }
+
+        // Render rooms
+        function renderRooms() {
+            const grid = document.getElementById('roomsGrid');
+            const filteredRooms = getFilteredRooms();
+
+            if (filteredRooms.length === 0) {
+                grid.innerHTML = `
+                    <div class="error-message" style="grid-column: 1/-1; text-align: center; padding: var(--space-8); color: var(--text-muted); font-style: italic;">
+                        Aucune chambre trouvée avec ces filtres
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = '';
+            filteredRooms.forEach(room => {
+                const card = createRoomCard(room);
+                grid.appendChild(card);
+            });
+        }
+
+        // Get filtered rooms
+        function getFilteredRooms() {
+            return rooms.filter(room => {
+                const statusMatch = activeStatusFilter === 'all' || room.status === activeStatusFilter;
+                const typeMatch = activeTypeFilter === 'all' || room.room_type?.id.toString() === activeTypeFilter;
+                return statusMatch && typeMatch;
+            });
+        }
+
+        // Create room card
+        function createRoomCard(room) {
+            const card = document.createElement('div');
+            card.className = `room-card status-${room.status}`;
+            card.addEventListener('click', () => openRoomModal(room));
+
+            const statusBadge = InnDesk.utils.createStatusBadge(room.status);
+
+            card.innerHTML = `
+                <div class="room-card-header">
+                    <div class="room-number">Chambre ${room.number}</div>
+                    <div></div>
+                </div>
+                <div class="room-details">
+                    <div class="room-detail-item">
+                        <strong>${room.room_type?.name || 'Type inconnu'}</strong>
+                    </div>
+                    <div class="room-detail-item">
+                        Étage ${room.floor}
+                    </div>
+                    <div class="room-detail-item">
+                        ${InnDesk.utils.formatCurrency(room.room_type?.price_per_night || 0)}/nuit
+                    </div>
+                    <div class="room-detail-item">
+                        ${room.room_type?.max_occupancy || 0} personne${(room.room_type?.max_occupancy || 0) > 1 ? 's' : ''}
+                    </div>
+                </div>
+            `;
+
+            // Add status badge to header
+            card.querySelector('.room-card-header > div:last-child').appendChild(statusBadge);
+
+            return card;
+        }
+
+        // Filter functions
+        function setStatusFilter(status) {
+            activeStatusFilter = status;
+            updateFilterButtons('statusFilters', status);
+            renderRooms();
+        }
+
+        function setTypeFilter(typeId) {
+            activeTypeFilter = typeId;
+            updateFilterButtons('typeFilters', typeId);
+            renderRooms();
+        }
+
+        function updateFilterButtons(containerId, activeValue) {
+            const container = document.getElementById(containerId);
+            const buttons = container.querySelectorAll('.filter-pill');
+            
+            buttons.forEach(button => {
+                if (button.dataset.filter === activeValue) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        // Modal functions
+        function openRoomModal(room) {
+            const modal = document.getElementById('roomModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const roomInfoGrid = document.getElementById('roomInfoGrid');
+            const recentReservationsList = document.getElementById('recentReservationsList');
+
+            modalTitle.textContent = `Chambre ${room.number}`;
+
+            // Populate room info
+            roomInfoGrid.innerHTML = `
+                <div class="room-info-item">
+                    <div class="room-info-label">Numéro</div>
+                    <div class="room-info-value">${room.number}</div>
+                </div>
+                <div class="room-info-item">
+                    <div class="room-info-label">Étage</div>
+                    <div class="room-info-value">${room.floor}</div>
+                </div>
+                <div class="room-info-item">
+                    <div class="room-info-label">Type</div>
+                    <div class="room-info-value">${room.room_type?.name || 'Type inconnu'}</div>
+                </div>
+                <div class="room-info-item">
+                    <div class="room-info-label">Statut</div>
+                    <div class="room-info-value"></div>
+                </div>
+                <div class="room-info-item">
+                    <div class="room-info-label">Prix/nuit</div>
+                    <div class="room-info-value">${InnDesk.utils.formatCurrency(room.room_type?.price_per_night || 0)}</div>
+                </div>
+                <div class="room-info-item">
+                    <div class="room-info-label">Capacité max</div>
+                    <div class="room-info-value">${room.room_type?.max_occupancy || 0} personne${(room.room_type?.max_occupancy || 0) > 1 ? 's' : ''}</div>
+                </div>
+            `;
+
+            // Add status badge
+            const statusBadge = InnDesk.utils.createStatusBadge(room.status);
+            roomInfoGrid.querySelector('.room-info-item:nth-child(4) .room-info-value').appendChild(statusBadge);
+
+            // Add description if available
+            if (room.room_type?.description) {
+                const descriptionItem = document.createElement('div');
+                descriptionItem.className = 'room-info-item';
+                descriptionItem.style.gridColumn = '1 / -1';
+                descriptionItem.innerHTML = `
+                    <div class="room-info-label">Description</div>
+                    <div class="room-info-value">${room.room_type.description}</div>
+                `;
+                roomInfoGrid.appendChild(descriptionItem);
+            }
+
+            // Show recent reservations for this room
+            const roomReservations = reservations
+                .filter(res => res.room?.id === room.id)
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .slice(0, 3);
+
+            if (roomReservations.length === 0) {
+                recentReservationsList.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); font-style: italic; padding: var(--space-4);">
+                        Aucune réservation récente
+                    </div>
+                `;
+            } else {
+                recentReservationsList.innerHTML = '';
+                roomReservations.forEach(reservation => {
+                    const item = document.createElement('div');
+                    item.className = 'reservation-item';
+                    
+                    const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
+                    
+                    item.innerHTML = `
+                        <div class="reservation-client">
+                            ${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}
+                        </div>
+                        <div class="reservation-dates">
+                            ${InnDesk.utils.formatShortDate(reservation.check_in_date)} → ${InnDesk.utils.formatShortDate(reservation.check_out_date)}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>${InnDesk.utils.formatCurrency(reservation.total_amount || 0)}</span>
+                            <div></div>
+                        </div>
+                    `;
+                    
+                    // Add status badge
+                    item.querySelector('div:last-child > div').appendChild(statusBadge);
+                    
+                    recentReservationsList.appendChild(item);
+                });
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeRoomModal() {
+            const modal = document.getElementById('roomModal');
+            modal.classList.remove('show');
+        }
+
+        // Event listeners
+        document.getElementById('statusFilters').addEventListener('click', (e) => {
+            if (e.target.classList.contains('filter-pill')) {
+                setStatusFilter(e.target.dataset.filter);
+            }
+        });
+
+        document.getElementById('modalCloseBtn').addEventListener('click', closeRoomModal);
+
+        document.getElementById('roomModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeRoomModal();
+            }
+        });
+
+        // Initialize
+        loadRoomsData();
+
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
