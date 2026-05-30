@@ -24,16 +24,23 @@ class ClientUpdate(BaseModel):
     notes: str | None = None
 
 
-class ClientResponse(BaseModel):
+class ClientListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
+    
     id: int
     first_name: str
     last_name: str
     email: str | None
     phone: str | None
     nationality: str | None
-    id_document: str | None
     gdpr_consent: bool
     gdpr_consent_at: datetime | None
     created_at: datetime
+
+
+class ClientDetailResponse(ClientListResponse):
+    id_document: str | None
+
+
+# Keep for backward compatibility
+ClientResponse = ClientDetailResponse

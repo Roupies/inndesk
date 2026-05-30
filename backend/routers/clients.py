@@ -8,12 +8,12 @@ from backend.core.security import get_current_user
 from backend.models.client import Client
 from backend.models.reservation import Reservation
 from backend.models.user import User
-from backend.schemas.client import ClientCreate, ClientResponse, ClientUpdate
+from backend.schemas.client import ClientCreate, ClientResponse, ClientUpdate, ClientListResponse, ClientDetailResponse
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
 
-@router.get("/", response_model=list[ClientResponse])
+@router.get("/", response_model=list[ClientListResponse])
 def get_clients(
     search: str | None = Query(None),
     current_user: User = Depends(get_current_user),

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.core.database import get_db
-from backend.core.security import create_access_token, hash_password, verify_password
+from backend.core.security import create_access_token, hash_password, verify_password, require_admin
 from backend.models.user import User
 from backend.schemas.auth import LoginRequest, TokenResponse
 from backend.schemas.user import UserCreate, UserResponse
@@ -11,7 +11,12 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+def register(
+    user_data: UserCreate, 
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    # Note: seed.py uses direct DB insertion, not this endpoint — no impact.
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(

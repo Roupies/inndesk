@@ -325,85 +325,6 @@ function validateRequired(value) {
     return value && value.trim().length > 0;
 }
 
-// Authentication API
-const authAPI = {
-    async login(credentials) {
-        const response = await apiFetch('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify(credentials)
-        });
-        
-        if (response.access_token) {
-            setToken(response.access_token);
-            // User data will be loaded after login
-        }
-        
-        return response;
-    },
-    
-    async getCurrentUser() {
-        return await apiFetch('/users/me');
-    },
-    
-    logout() {
-        clearToken();
-        window.location.href = '/app/index.html';
-    }
-};
-
-// Dashboard API
-const dashboardAPI = {
-    async getStats() {
-        return await apiFetch('/dashboard/');
-    }
-};
-
-// Rooms API
-const roomsAPI = {
-    async getAll(params = {}) {
-        const searchParams = new URLSearchParams(params);
-        return await apiFetch(`/rooms/?${searchParams}`);
-    },
-    
-    async getById(id) {
-        return await apiFetch(`/rooms/${id}/`);
-    },
-    
-    async getTypes() {
-        return await apiFetch('/room-types/');
-    }
-};
-
-// Reservations API
-const reservationsAPI = {
-    async getAll(params = {}) {
-        const searchParams = new URLSearchParams(params);
-        return await apiFetch(`/reservations/?${searchParams}`);
-    },
-    
-    async getById(id) {
-        return await apiFetch(`/reservations/${id}/`);
-    },
-    
-    async create(data) {
-        return await apiFetch('/reservations/', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-    }
-};
-
-// Clients API
-const clientsAPI = {
-    async getAll(params = {}) {
-        const searchParams = new URLSearchParams(params);
-        return await apiFetch(`/clients/?${searchParams}`);
-    },
-    
-    async getById(id) {
-        return await apiFetch(`/clients/${id}/`);
-    }
-};
 
 // Mobile Navigation
 function initMobileNav() {
@@ -440,11 +361,76 @@ document.addEventListener('DOMContentLoaded', () => {
 // Export for use in other scripts
 window.InnDesk = {
     api: {
-        auth: authAPI,
-        dashboard: dashboardAPI,
-        rooms: roomsAPI,
-        reservations: reservationsAPI,
-        clients: clientsAPI
+        auth: {
+            async login(credentials) {
+                const response = await apiFetch('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify(credentials)
+                });
+                
+                if (response.access_token) {
+                    setToken(response.access_token);
+                    // User data will be loaded after login
+                }
+                
+                return response;
+            },
+            
+            async getCurrentUser() {
+                return await apiFetch('/users/me');
+            },
+            
+            logout() {
+                clearToken();
+                window.location.href = '/app/index.html';
+            }
+        },
+        dashboard: {
+            async getStats() {
+                return await apiFetch('/dashboard/');
+            }
+        },
+        rooms: {
+            async getAll(params = {}) {
+                const searchParams = new URLSearchParams(params);
+                return await apiFetch(`/rooms/?${searchParams}`);
+            },
+            
+            async getById(id) {
+                return await apiFetch(`/rooms/${id}/`);
+            },
+            
+            async getTypes() {
+                return await apiFetch('/room-types/');
+            }
+        },
+        reservations: {
+            async getAll(params = {}) {
+                const searchParams = new URLSearchParams(params);
+                return await apiFetch(`/reservations/?${searchParams}`);
+            },
+            
+            async getById(id) {
+                return await apiFetch(`/reservations/${id}/`);
+            },
+            
+            async create(data) {
+                return await apiFetch('/reservations/', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+            }
+        },
+        clients: {
+            async getAll(params = {}) {
+                const searchParams = new URLSearchParams(params);
+                return await apiFetch(`/clients/?${searchParams}`);
+            },
+            
+            async getById(id) {
+                return await apiFetch(`/clients/${id}/`);
+            }
+        }
     },
     utils: {
         formatDate,

@@ -16,7 +16,7 @@ class ReservationCreate(BaseModel):
     adults: int = 1
     children: int = 0
     total_amount: Decimal | None = None
-    status: str = "confirmed"
+    status: Literal["confirmed", "checked_in", "checked_out", "cancelled", "no_show"] = "confirmed"
     notes: str | None = None
 
 
