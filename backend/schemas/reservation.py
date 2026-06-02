@@ -71,3 +71,7 @@ class ReservationDetailResponse(BaseModel):
     client: ClientResponse
     room_type: RoomTypeResponse
     room: RoomResponse | None
+
+
+class AssignRoomRequest(BaseModel):
+    room_id: int

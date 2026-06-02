@@ -10,7 +10,7 @@ from backend.models.reservation import Reservation
 from backend.models.room import Room
 from backend.models.room_type import RoomType
 from backend.models.user import User
-from backend.schemas.reservation import ReservationCreate, ReservationDetailResponse, ReservationResponse, ReservationUpdate
+from backend.schemas.reservation import AssignRoomRequest, ReservationCreate, ReservationDetailResponse, ReservationResponse, ReservationUpdate
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
@@ -23,9 +23,9 @@ def find_available_room(
     exclude_reservation_id: int | None = None
 ):
     """
-    Trouve la première chambre libre de cette catégorie sur ces dates.
-    Retourne un Room object ou None si complet.
-    Overlap: existing.check_in < new_check_out AND existing.check_out > new_check_in
+    Find the first available room of the given type for the date range.
+    Returns a Room object, or None if no room is available.
+    Overlap condition: existing.check_in < new_check_out AND existing.check_out > new_check_in
     """
     rooms = db.query(Room).filter(
         Room.room_type_id == room_type_id,
@@ -173,9 +173,6 @@ def create_reservation(
     
     return reservation
 
-
-class AssignRoomRequest(BaseModel):
-    room_id: int
 
 @router.post("/{reservation_id}/assign-room", response_model=ReservationResponse)
 def assign_room(
