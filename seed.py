@@ -169,9 +169,11 @@ def main():
         
         reservations = []
         for client_id, room_id, check_in, check_out, adults, children, total, status in reservations_data:
+            room = db.query(Room).filter(Room.id == room_id).first()
             reservation = Reservation(
                 client_id=client_id,
                 room_id=room_id,
+                room_type_id=room.room_type_id,
                 created_by=receptionist_user.id,
                 check_in_date=check_in,
                 check_out_date=check_out,
