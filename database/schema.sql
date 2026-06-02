@@ -52,7 +52,8 @@ CREATE TABLE rooms (
 CREATE TABLE reservations (
 	id SERIAL NOT NULL, 
 	client_id INTEGER NOT NULL, 
-	room_id INTEGER NOT NULL, 
+	room_type_id INTEGER NOT NULL, 
+	room_id INTEGER, 
 	created_by INTEGER NOT NULL, 
 	check_in_date DATE NOT NULL, 
 	check_out_date DATE NOT NULL, 
@@ -69,6 +70,7 @@ CREATE TABLE reservations (
 	CONSTRAINT check_children_not_negative CHECK (children >= 0), 
 	CONSTRAINT chk_dates CHECK (check_out_date > check_in_date), 
 	FOREIGN KEY(client_id) REFERENCES clients (id), 
+	FOREIGN KEY(room_type_id) REFERENCES room_types (id), 
 	FOREIGN KEY(room_id) REFERENCES rooms (id), 
 	FOREIGN KEY(created_by) REFERENCES users (id)
 );
