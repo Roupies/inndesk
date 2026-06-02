@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Réservations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        .reservations-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr 1fr;
+            gap: var(--space-4);
+            align-items: end;
+        }
+
+        .client-search-wrapper {
+            position: relative;
+        }
+
+        .client-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .client-option {
+            padding: var(--space-2) var(--space-3);
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .client-option:hover {
+            background: var(--bg);
+        }
+
+        .client-option:last-child {
+            border-bottom: none;
+        }
+
+        .reservations-table-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: var(--space-1);
+            align-items: center;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: var(--space-1);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .action-btn.delete:hover {
+            background: var(--color-maintenance);
+            color: white;
+        }
+
+        .confirm-delete-row {
+            background: var(--color-maintenance);
+            color: white;
+        }
+
+        .confirm-delete-row td {
+            background: var(--color-maintenance);
+            color: white;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+        }
+
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: var(--space-2);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .modal-content {
+            padding: var(--space-6);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .auto-hint {
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+            margin-top: var(--space-1);
+            font-style: italic;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+
+        .detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .detail-label {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            font-size: var(--text-base);
+            color: var(--text);
+        }
+
+        .status-change-info {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        @media (max-width: 768px) {
+            .filters-row {
+                grid-template-columns: 1fr;
+                gap: var(--space-3);
+            }
+
+            .reservations-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .reservations-table-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+            
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./planning.html" class="nav-link">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./reservations.html" class="nav-link active">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                            <span class="badge badge-sm badge-blue" style="margin-left: auto;">bientôt</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Réservations</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Gestion des réservations</p>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Section -->
+            <div class="reservations-stats">
+                <div class="kpi-card" id="totalReservationsCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="confirmedReservationsCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="checkedInReservationsCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="cancelledReservationsCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <div class="filters-row">
+                    <div class="form-group">
+                        <label for="searchInput" class="form-label">Rechercher</label>
+                        <input type="text" id="searchInput" class="form-input" placeholder="Client ou chambre...">
+                    </div>
+                    <div class="form-group">
+                        <label for="statusFilter" class="form-label">Statut</label>
+                        <select id="statusFilter" class="form-input">
+                            <option value="">Tous</option>
+                            <option value="confirmed">Confirmée</option>
+                            <option value="checked_in">En séjour</option>
+                            <option value="checked_out">Check-out</option>
+                            <option value="cancelled">Annulée</option>
+                            <option value="no_show">No show</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: var(--space-2);">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="dateFrom" class="form-label">Arrivée du</label>
+                            <input type="date" id="dateFrom" class="form-input">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="dateTo" class="form-label">au</label>
+                            <input type="date" id="dateTo" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: end;">
+                        <button class="btn btn-primary" id="newReservationBtn">
+                            <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            Nouvelle réservation
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reservations Table -->
+            <div class="reservations-table-container">
+                <table class="table" id="reservationsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client</th>
+                            <th>Chambre</th>
+                            <th>Arrivée</th>
+                            <th>Départ</th>
+                            <th>Nuits</th>
+                            <th>Statut</th>
+                            <th>Montant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Skeleton loading state -->
+                        <tr>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                        </tr>
+                        <tr>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Reservation Modal -->
+    <div class="modal-overlay" id="createReservationModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Nouvelle réservation</h2>
+                <button class="modal-close" id="createModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form id="createReservationForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="clientSearch" class="form-label">Client</label>
+                            <div class="client-search-wrapper">
+                                <input type="text" id="clientSearch" class="form-input" placeholder="Rechercher un client...">
+                                <div class="client-dropdown" id="clientDropdown"></div>
+                            </div>
+                            <input type="hidden" id="clientId" name="client_id">
+                        </div>
+                        <div class="form-group">
+                            <label for="roomSelect" class="form-label">Chambre</label>
+                            <select id="roomSelect" name="room_id" class="form-input">
+                                <option value="">Sélectionner une chambre...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="checkInDate" class="form-label">Arrivée</label>
+                            <input type="date" id="checkInDate" name="check_in_date" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="checkOutDate" class="form-label">Départ</label>
+                            <input type="date" id="checkOutDate" name="check_out_date" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="adults" class="form-label">Adultes</label>
+                            <input type="number" id="adults" name="adults" min="1" max="10" value="1" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="children" class="form-label">Enfants</label>
+                            <input type="number" id="children" name="children" min="0" max="10" value="0" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="totalAmount" class="form-label">Montant total (€)</label>
+                            <input type="number" id="totalAmount" name="total_amount" step="0.01" class="form-input" placeholder="Optionnel">
+                            <div class="auto-hint" id="autoHint"></div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea id="notes" name="notes" class="form-input" rows="3" placeholder="Notes optionnelles..."></textarea>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                        <button type="button" class="btn btn-ghost" onclick="closeCreateReservationModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Créer la réservation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservation Detail Modal -->
+    <div class="modal-overlay" id="detailReservationModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="detailModalTitle">Détail de la réservation</h2>
+                <button class="modal-close" id="detailModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="detail-grid" id="detailGrid">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Change Modal -->
+    <div class="modal-overlay" id="statusChangeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Modifier le statut</h2>
+                <button class="modal-close" id="statusModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="status-change-info">
+                    <div style="margin-bottom: var(--space-2);">
+                        <strong>Statut actuel :</strong> 
+                        <span id="currentStatusBadge"></span>
+                    </div>
+                </div>
+                <form id="statusChangeForm">
+                    <div class="form-group">
+                        <label for="newStatus" class="form-label">Nouveau statut</label>
+                        <select id="newStatus" name="status" class="form-input">
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                        <button type="button" class="btn btn-ghost" onclick="closeStatusChangeModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Mettre à jour</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script src="./assets/api/auth.js"></script>
+    <script src="./assets/api/rooms.js"></script>
+    <script src="./assets/api/reservations.js"></script>
+    <script src="./assets/api/clients.js"></script>
+    <script src="./assets/api/index.js"></script>
+    <script>
+        // Protect page and initialize
+        InnDesk.auth.redirectIfNotAuth();
+
+        // State
+        let reservations = [];
+        let rooms = [];
+        let currentUser = null;
+        let searchTimeout = null;
+        let selectedClient = null;
+        let selectedReservation = null;
+
+        // Load user information
+        async function loadUserInfo() {
+            try {
+                currentUser = await InnDesk.auth.ensureCurrentUser();
+                if (currentUser) {
+                    document.getElementById('userName').textContent = currentUser.full_name;
+                    document.getElementById('userRole').textContent = InnDesk.utils.statusLabel(currentUser.role);
+                } else {
+                    document.getElementById('userName').textContent = 'Utilisateur';
+                    document.getElementById('userRole').textContent = '';
+                }
+            } catch (error) {
+                document.getElementById('userName').textContent = 'Utilisateur';
+                document.getElementById('userRole').textContent = '';
+            }
+        }
+        loadUserInfo();
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIconLight = document.getElementById('themeIconLight');
+        const themeIconDark = document.getElementById('themeIconDark');
+
+        function updateThemeIcon() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'light') {
+                themeIconLight.style.display = 'none';
+                themeIconDark.style.display = 'block';
+            } else {
+                themeIconLight.style.display = 'block';
+                themeIconDark.style.display = 'none';
+            }
+        }
+
+        themeToggle.addEventListener('click', () => {
+            InnDesk.utils.toggleTheme();
+            updateThemeIcon();
+        });
+
+        updateThemeIcon();
+
+        // Logout functionality
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            InnDesk.api.auth.logout();
+        });
+
+        // Load reservations data
+        async function loadReservationsData() {
+            try {
+                const [reservationsData, roomsData] = await Promise.all([
+                    InnDesk.api.reservations.getAll({ limit: 1000 }),
+                    InnDesk.api.rooms.getAll()
+                ]);
+
+                reservations = reservationsData.sort((a, b) => new Date(b.check_in_date) - new Date(a.check_in_date));
+                rooms = roomsData;
+
+                updateStats();
+                populateRoomSelect();
+                renderReservations();
+
+            } catch (error) {
+                const tbody = document.querySelector('#reservationsTable tbody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="error-message" style="text-align: center; padding: var(--space-8);">
+                            Impossible de charger les réservations
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            const total = reservations.length;
+            const confirmed = reservations.filter(r => r.status === 'confirmed').length;
+            const checkedIn = reservations.filter(r => r.status === 'checked_in').length;
+            const cancelled = reservations.filter(r => r.status === 'cancelled').length;
+
+            document.getElementById('totalReservationsCard').innerHTML = `
+                <div class="kpi-value">${total}</div>
+                <div class="kpi-label">Total réservations</div>
+            `;
+
+            document.getElementById('confirmedReservationsCard').innerHTML = `
+                <div class="kpi-value">${confirmed}</div>
+                <div class="kpi-label">Confirmées</div>
+            `;
+
+            document.getElementById('checkedInReservationsCard').innerHTML = `
+                <div class="kpi-value">${checkedIn}</div>
+                <div class="kpi-label">En séjour</div>
+            `;
+
+            document.getElementById('cancelledReservationsCard').innerHTML = `
+                <div class="kpi-value">${cancelled}</div>
+                <div class="kpi-label">Annulées</div>
+            `;
+        }
+
+        // Populate room select for create form
+        function populateRoomSelect() {
+            const roomSelect = document.getElementById('roomSelect');
+            roomSelect.innerHTML = '<option value="">Sélectionner une chambre...</option>';
+
+            const availableRooms = rooms.filter(room => room.status === 'available');
+            
+            availableRooms.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room.id;
+                option.textContent = `N°${room.number} — ${room.room_type?.name} (${room.room_type?.max_occupancy} pers.) — ${InnDesk.utils.formatCurrency(room.room_type?.price_per_night)}/nuit`;
+                roomSelect.appendChild(option);
+            });
+        }
+
+        // Calculate nights between dates
+        function calculateNights(checkIn, checkOut) {
+            if (!checkIn || !checkOut) return 0;
+            const start = new Date(checkIn);
+            const end = new Date(checkOut);
+            return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+        }
+
+        // Render reservations table
+        function renderReservations() {
+            const tbody = document.querySelector('#reservationsTable tbody');
+            const filteredReservations = getFilteredReservations();
+
+            if (filteredReservations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center" style="padding: var(--space-8); color: var(--text-muted); font-style: italic;">
+                            Aucune réservation trouvée
+                            <br>
+                            <button class="btn btn-primary" style="margin-top: var(--space-3);" onclick="openCreateReservationModal()">
+                                Créer la première réservation
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            filteredReservations.forEach(reservation => {
+                const row = createReservationRow(reservation);
+                tbody.appendChild(row);
+            });
+        }
+
+        // Get filtered reservations
+        function getFilteredReservations() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            return reservations.filter(reservation => {
+                // Search filter
+                const clientName = `${reservation.client?.first_name || ''} ${reservation.client?.last_name || ''}`.toLowerCase();
+                const roomNumber = `${reservation.room?.number || ''}`.toLowerCase();
+                const searchMatch = !searchTerm || clientName.includes(searchTerm) || roomNumber.includes(searchTerm);
+
+                // Status filter
+                const statusMatch = !statusFilter || reservation.status === statusFilter;
+
+                // Date filter
+                const checkInDate = reservation.check_in_date;
+                const dateFromMatch = !dateFrom || checkInDate >= dateFrom;
+                const dateToMatch = !dateTo || checkInDate <= dateTo;
+
+                return searchMatch && statusMatch && dateFromMatch && dateToMatch;
+            });
+        }
+
+        // Create reservation table row
+        function createReservationRow(reservation) {
+            const row = document.createElement('tr');
+            row.dataset.id = reservation.id;
+
+            const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+            const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
+            const clientName = `${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}`;
+            const roomInfo = `${reservation.room?.number || '?'} · ${reservation.room?.room_type?.name || 'Type inconnu'}`;
+
+            row.innerHTML = `
+                <td>#${reservation.id}</td>
+                <td>${clientName}</td>
+                <td>${roomInfo}</td>
+                <td>${InnDesk.utils.formatDate(reservation.check_in_date)}</td>
+                <td>${InnDesk.utils.formatDate(reservation.check_out_date)}</td>
+                <td>${nights}</td>
+                <td></td>
+                <td>${reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—'}</td>
+                <td></td>
+            `;
+
+            // Add status badge
+            row.cells[6].appendChild(statusBadge);
+
+            // Add actions
+            const actionsCell = row.cells[8];
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'actions-cell';
+
+            // View button
+            const viewBtn = document.createElement('button');
+            viewBtn.className = 'action-btn';
+            viewBtn.innerHTML = '<i data-lucide="eye" style="width: 16px; height: 16px;"></i>';
+            viewBtn.title = 'Voir détails';
+            viewBtn.onclick = () => openDetailModal(reservation);
+
+            // Edit status button
+            const editBtn = document.createElement('button');
+            editBtn.className = 'action-btn';
+            editBtn.innerHTML = '<i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>';
+            editBtn.title = 'Modifier statut';
+            editBtn.onclick = () => openStatusChangeModal(reservation);
+
+            // Delete button (admin only)
+            if (currentUser && currentUser.role === 'admin') {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn delete';
+                deleteBtn.innerHTML = '<i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>';
+                deleteBtn.title = 'Supprimer';
+                deleteBtn.onclick = () => showDeleteConfirmation(reservation.id, row);
+                actionsDiv.appendChild(deleteBtn);
+            }
+
+            actionsDiv.appendChild(viewBtn);
+            actionsDiv.appendChild(editBtn);
+            actionsCell.appendChild(actionsDiv);
+
+            return row;
+        }
+
+        // Client search functionality
+        let clientSearchTimeout = null;
+        document.getElementById('clientSearch').addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            
+            if (clientSearchTimeout) {
+                clearTimeout(clientSearchTimeout);
+            }
+
+            if (query.length < 2) {
+                hideClientDropdown();
+                return;
+            }
+
+            clientSearchTimeout = setTimeout(async () => {
+                try {
+                    const clients = await InnDesk.api.clients.search(query);
+                    showClientDropdown(clients);
+                } catch (error) {
+                    hideClientDropdown();
+                }
+            }, 300);
+        });
+
+        function showClientDropdown(clients) {
+            const dropdown = document.getElementById('clientDropdown');
+            dropdown.innerHTML = '';
+
+            if (clients.length === 0) {
+                dropdown.innerHTML = '<div class="client-option" style="color: var(--text-muted); font-style: italic;">Aucun client trouvé</div>';
+            } else {
+                clients.forEach(client => {
+                    const option = document.createElement('div');
+                    option.className = 'client-option';
+                    option.textContent = `${client.first_name} ${client.last_name} — ${client.email}`;
+                    option.onclick = () => selectClient(client);
+                    dropdown.appendChild(option);
+                });
+            }
+
+            dropdown.style.display = 'block';
+        }
+
+        function hideClientDropdown() {
+            document.getElementById('clientDropdown').style.display = 'none';
+        }
+
+        function selectClient(client) {
+            selectedClient = client;
+            document.getElementById('clientSearch').value = `${client.first_name} ${client.last_name}`;
+            document.getElementById('clientId').value = client.id;
+            hideClientDropdown();
+        }
+
+        // Auto-calculate price hint
+        function updatePriceHint() {
+            const roomSelect = document.getElementById('roomSelect');
+            const checkIn = document.getElementById('checkInDate').value;
+            const checkOut = document.getElementById('checkOutDate').value;
+            const hintDiv = document.getElementById('autoHint');
+
+            if (!roomSelect.value || !checkIn || !checkOut) {
+                hintDiv.textContent = '';
+                return;
+            }
+
+            const selectedRoom = rooms.find(r => r.id.toString() === roomSelect.value);
+            if (!selectedRoom) {
+                hintDiv.textContent = '';
+                return;
+            }
+
+            const nights = calculateNights(checkIn, checkOut);
+            if (nights <= 0) {
+                hintDiv.textContent = '';
+                return;
+            }
+
+            const pricePerNight = selectedRoom.room_type?.price_per_night || 0;
+            const total = nights * pricePerNight;
+            
+            hintDiv.textContent = `(suggestion: ${nights} nuit${nights > 1 ? 's' : ''} × ${InnDesk.utils.formatCurrency(pricePerNight)} = ${InnDesk.utils.formatCurrency(total)})`;
+        }
+
+        // Event listeners for auto-hint
+        ['roomSelect', 'checkInDate', 'checkOutDate'].forEach(id => {
+            document.getElementById(id).addEventListener('change', updatePriceHint);
+        });
+
+        // Set minimum dates
+        function setMinimumDates() {
+            const today = new Date().toISOString().split('T')[0];
+            const checkInInput = document.getElementById('checkInDate');
+            const checkOutInput = document.getElementById('checkOutDate');
+
+            checkInInput.min = today;
+            
+            checkInInput.addEventListener('change', () => {
+                if (checkInInput.value) {
+                    const nextDay = new Date(checkInInput.value);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkOutInput.min = nextDay.toISOString().split('T')[0];
+                    
+                    if (checkOutInput.value && checkOutInput.value <= checkInInput.value) {
+                        checkOutInput.value = nextDay.toISOString().split('T')[0];
+                    }
+                }
+                updatePriceHint();
+            });
+        }
+
+        // Create reservation form submit
+        document.getElementById('createReservationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Clear previous errors
+            InnDesk.utils.clearFieldErrors(document.getElementById('createReservationModal'));
+
+            // Validate form
+            const formData = InnDesk.utils.getFormData(e.target);
+            let hasErrors = false;
+
+            if (!formData.client_id) {
+                InnDesk.utils.showFieldError('clientSearch', 'Veuillez sélectionner un client');
+                hasErrors = true;
+            }
+
+            if (!formData.room_id) {
+                InnDesk.utils.showFieldError('roomSelect', 'Veuillez sélectionner une chambre');
+                hasErrors = true;
+            }
+
+            if (!formData.check_in_date) {
+                InnDesk.utils.showFieldError('checkInDate', 'La date d\'arrivée est requise');
+                hasErrors = true;
+            }
+
+            if (!formData.check_out_date) {
+                InnDesk.utils.showFieldError('checkOutDate', 'La date de départ est requise');
+                hasErrors = true;
+            }
+
+            if (formData.check_in_date && formData.check_out_date && formData.check_out_date <= formData.check_in_date) {
+                InnDesk.utils.showFieldError('checkOutDate', 'La date de départ doit être après l\'arrivée');
+                hasErrors = true;
+            }
+
+            if (parseInt(formData.adults) < 1) {
+                InnDesk.utils.showFieldError('adults', 'Au moins 1 adulte requis');
+                hasErrors = true;
+            }
+
+            if (hasErrors) return;
+
+            try {
+                await InnDesk.api.reservations.create(formData);
+                
+                closeCreateReservationModal();
+                showToast('Réservation créée avec succès', 'success');
+                
+                // Reload data
+                await loadReservationsData();
+
+            } catch (error) {
+                if (error.status === 409) {
+                    InnDesk.utils.showFieldError('roomSelect', 'Cette chambre est déjà réservée sur ces dates');
+                } else {
+                    showToast(error.detail || 'Erreur lors de la création de la réservation', 'error');
+                }
+            }
+        });
+
+        // Modal functions
+        function openCreateReservationModal() {
+            const modal = document.getElementById('createReservationModal');
+            
+            // Reset form
+            document.getElementById('createReservationForm').reset();
+            document.getElementById('clientId').value = '';
+            selectedClient = null;
+            InnDesk.utils.clearFieldErrors(modal);
+            document.getElementById('autoHint').textContent = '';
+            
+            modal.classList.add('show');
+            setMinimumDates();
+        }
+
+        function closeCreateReservationModal() {
+            document.getElementById('createReservationModal').classList.remove('show');
+        }
+
+        function openDetailModal(reservation) {
+            const modal = document.getElementById('detailReservationModal');
+            const title = document.getElementById('detailModalTitle');
+            const grid = document.getElementById('detailGrid');
+
+            title.textContent = `Réservation #${reservation.id}`;
+
+            const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+            const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
+
+            grid.innerHTML = `
+                <div class="detail-item">
+                    <div class="detail-label">Client</div>
+                    <div class="detail-value">${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value">${reservation.client?.email || '—'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Téléphone</div>
+                    <div class="detail-value">${reservation.client?.phone || '—'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Chambre</div>
+                    <div class="detail-value">N°${reservation.room?.number || '?'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Type de chambre</div>
+                    <div class="detail-value">${reservation.room?.room_type?.name || 'Type inconnu'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Étage</div>
+                    <div class="detail-value">${reservation.room?.floor || '—'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Arrivée</div>
+                    <div class="detail-value">${InnDesk.utils.formatDate(reservation.check_in_date)}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Départ</div>
+                    <div class="detail-value">${InnDesk.utils.formatDate(reservation.check_out_date)}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Nuits</div>
+                    <div class="detail-value">${nights}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Adultes</div>
+                    <div class="detail-value">${reservation.adults}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Enfants</div>
+                    <div class="detail-value">${reservation.children}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Statut</div>
+                    <div class="detail-value"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Montant</div>
+                    <div class="detail-value">${reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Créée le</div>
+                    <div class="detail-value">${InnDesk.utils.formatDateTime(reservation.created_at)}</div>
+                </div>
+            `;
+
+            // Add status badge
+            grid.querySelector('.detail-item:nth-child(12) .detail-value').appendChild(statusBadge);
+
+            // Add notes if present
+            if (reservation.notes) {
+                const notesItem = document.createElement('div');
+                notesItem.className = 'detail-item full-width';
+                notesItem.innerHTML = `
+                    <div class="detail-label">Notes</div>
+                    <div class="detail-value">${reservation.notes}</div>
+                `;
+                grid.appendChild(notesItem);
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailReservationModal').classList.remove('show');
+        }
+
+        // Status transitions
+        const statusTransitions = {
+            'confirmed': ['checked_in', 'cancelled', 'no_show'],
+            'checked_in': ['checked_out'],
+            'checked_out': [],
+            'cancelled': [],
+            'no_show': []
+        };
+
+        function openStatusChangeModal(reservation) {
+            selectedReservation = reservation;
+            const modal = document.getElementById('statusChangeModal');
+            const currentBadge = document.getElementById('currentStatusBadge');
+            const newStatusSelect = document.getElementById('newStatus');
+
+            // Show current status
+            currentBadge.innerHTML = '';
+            currentBadge.appendChild(InnDesk.utils.createStatusBadge(reservation.status));
+
+            // Populate allowed transitions
+            const allowedStatuses = statusTransitions[reservation.status] || [];
+            newStatusSelect.innerHTML = '';
+
+            if (allowedStatuses.length === 0) {
+                newStatusSelect.innerHTML = '<option value="">Aucun changement autorisé</option>';
+                newStatusSelect.disabled = true;
+                
+                // Show message based on current status
+                let message = '';
+                if (reservation.status === 'checked_out') message = 'Séjour terminé';
+                else if (reservation.status === 'cancelled') message = 'Réservation annulée';
+                else if (reservation.status === 'no_show') message = 'No show confirmé';
+                
+                if (message) {
+                    const info = document.querySelector('.status-change-info');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.style.color = 'var(--text-muted)';
+                    messageDiv.style.fontStyle = 'italic';
+                    messageDiv.textContent = message;
+                    info.appendChild(messageDiv);
+                }
+            } else {
+                newStatusSelect.disabled = false;
+                newStatusSelect.innerHTML = '<option value="">Sélectionner un nouveau statut...</option>';
+                
+                allowedStatuses.forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = InnDesk.utils.statusLabel(status);
+                    newStatusSelect.appendChild(option);
+                });
+            }
+
+            modal.classList.add('show');
+        }
+
+        function closeStatusChangeModal() {
+            document.getElementById('statusChangeModal').classList.remove('show');
+            selectedReservation = null;
+            
+            // Clean up any added messages
+            const info = document.querySelector('.status-change-info');
+            const extraDivs = info.querySelectorAll('div:not(:first-child)');
+            extraDivs.forEach(div => div.remove());
+        }
+
+        // Status change form submit
+        document.getElementById('statusChangeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedReservation) return;
+
+            const formData = InnDesk.utils.getFormData(e.target);
+            
+            if (!formData.status) {
+                showToast('Veuillez sélectionner un nouveau statut', 'error');
+                return;
+            }
+
+            try {
+                await InnDesk.api.reservations.update(selectedReservation.id, { status: formData.status });
+                
+                closeStatusChangeModal();
+                showToast('Statut mis à jour avec succès', 'success');
+                
+                // Reload data
+                await loadReservationsData();
+
+            } catch (error) {
+                showToast(error.detail || 'Erreur lors de la mise à jour du statut', 'error');
+            }
+        });
+
+        // Delete confirmation
+        function showDeleteConfirmation(reservationId, row) {
+            const confirmRow = document.createElement('tr');
+            confirmRow.className = 'confirm-delete-row';
+            confirmRow.innerHTML = `
+                <td colspan="9" style="text-align: center; padding: var(--space-4);">
+                    Supprimer cette réservation ?
+                    <button class="btn btn-ghost btn-sm" style="margin-left: var(--space-3); color: white; border-color: white;" onclick="confirmDelete(${reservationId})">
+                        Confirmer
+                    </button>
+                    <button class="btn btn-ghost btn-sm" style="margin-left: var(--space-2); color: white; border-color: white;" onclick="cancelDelete(this)">
+                        Annuler
+                    </button>
+                </td>
+            `;
+
+            row.parentNode.insertBefore(confirmRow, row.nextSibling);
+            row.style.display = 'none';
+        }
+
+        async function confirmDelete(reservationId) {
+            try {
+                await InnDesk.api.reservations.delete(reservationId);
+                
+                showToast('Réservation supprimée avec succès', 'success');
+                
+                // Reload data
+                await loadReservationsData();
+
+            } catch (error) {
+                showToast(error.detail || 'Erreur lors de la suppression de la réservation', 'error');
+            }
+        }
+
+        function cancelDelete(button) {
+            const confirmRow = button.closest('tr');
+            const originalRow = confirmRow.previousElementSibling;
+            originalRow.style.display = '';
+            confirmRow.remove();
+        }
+
+        // Toast function
+        function showToast(message, type = 'info') {
+            // Simple toast implementation
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.style.cssText = `
+                position: fixed;
+                top: var(--space-4);
+                right: var(--space-4);
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-md);
+                padding: var(--space-3) var(--space-4);
+                box-shadow: var(--shadow-md);
+                z-index: 2000;
+                max-width: 400px;
+            `;
+            
+            if (type === 'success') {
+                toast.style.borderColor = 'var(--color-available)';
+                toast.style.background = 'var(--primary-light)';
+            } else if (type === 'error') {
+                toast.style.borderColor = 'var(--color-maintenance)';
+                toast.style.background = '#fef2f2';
+            }
+            
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+
+        // Filter event listeners
+        document.getElementById('searchInput').addEventListener('input', renderReservations);
+        document.getElementById('statusFilter').addEventListener('change', renderReservations);
+        document.getElementById('dateFrom').addEventListener('change', renderReservations);
+        document.getElementById('dateTo').addEventListener('change', renderReservations);
+
+        // Modal event listeners
+        document.getElementById('newReservationBtn').addEventListener('click', openCreateReservationModal);
+        document.getElementById('createModalCloseBtn').addEventListener('click', closeCreateReservationModal);
+        document.getElementById('detailModalCloseBtn').addEventListener('click', closeDetailModal);
+        document.getElementById('statusModalCloseBtn').addEventListener('click', closeStatusChangeModal);
+
+        // Close modals when clicking outside
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('show');
+                }
+            });
+        });
+
+        // Hide client dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.client-search-wrapper')) {
+                hideClientDropdown();
+            }
+        });
+
+        // Initialize
+        loadReservationsData();
+
+        // Initialize Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
