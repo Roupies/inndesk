@@ -1,3 +1,4 @@
+from datetime import date as DateType
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -25,6 +26,32 @@ def get_rooms(
     
     rooms = query.all()
     return rooms
+
+
+@router.get("/available/", response_model=list[RoomDetailResponse])
+def get_available_rooms(
+    room_type_id: int = Query(...),
+    check_in: DateType = Query(...),
+    check_out: DateType = Query(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    rooms = db.query(Room).options(joinedload(Room.room_type)).filter(
+        Room.room_type_id == room_type_id,
+        Room.status == "available"
+    ).all()
+
+    available = []
+    for room in rooms:
+        overlap = db.query(Reservation).filter(
+            Reservation.room_id == room.id,
+            Reservation.status.in_(["confirmed", "checked_in"]),
+            Reservation.check_in_date < check_out,
+            Reservation.check_out_date > check_in,
+        ).first()
+        if not overlap:
+            available.append(room)
+    return available
 
 
 @router.get("/{room_id}", response_model=RoomDetailResponse)

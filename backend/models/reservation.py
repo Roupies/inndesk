@@ -10,7 +10,8 @@ class Reservation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
+    room_type_id = Column(Integer, ForeignKey("room_types.id"), nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     check_in_date = Column(Date, nullable=False)
     check_out_date = Column(Date, nullable=False)
@@ -23,6 +24,7 @@ class Reservation(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     client = relationship("Client", lazy="select")
+    room_type = relationship("RoomType", lazy="select")
     room = relationship("Room", lazy="select")
     created_by_user = relationship("User", lazy="select")
 

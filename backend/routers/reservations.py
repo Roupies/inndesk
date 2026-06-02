@@ -1,4 +1,6 @@
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
 from backend.core.database import get_db
@@ -6,36 +8,42 @@ from backend.core.security import get_current_user
 from backend.models.client import Client
 from backend.models.reservation import Reservation
 from backend.models.room import Room
+from backend.models.room_type import RoomType
 from backend.models.user import User
 from backend.schemas.reservation import ReservationCreate, ReservationDetailResponse, ReservationResponse, ReservationUpdate
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
 
 
-def check_availability(
+def find_available_room(
     db: Session,
-    room_id: int,
+    room_type_id: int,
     check_in_date,
     check_out_date,
     exclude_reservation_id: int | None = None
-) -> bool:
+):
     """
-    Returns True if the room is available for the given date range.
-    
-    Two reservations overlap when:
-        existing.check_in_date < new check_out
-        AND existing.check_out_date > new check_in
+    Trouve la première chambre libre de cette catégorie sur ces dates.
+    Retourne un Room object ou None si complet.
+    Overlap: existing.check_in < new_check_out AND existing.check_out > new_check_in
     """
-    query = db.query(Reservation).filter(
-        Reservation.room_id == room_id,
-        Reservation.status.in_(["confirmed", "checked_in"]),
-        Reservation.check_in_date < check_out_date,
-        Reservation.check_out_date > check_in_date,
-    )
-    if exclude_reservation_id:
-        query = query.filter(Reservation.id != exclude_reservation_id)
+    rooms = db.query(Room).filter(
+        Room.room_type_id == room_type_id,
+        Room.status == "available"
+    ).all()
 
-    return query.first() is None
+    for room in rooms:
+        query = db.query(Reservation).filter(
+            Reservation.room_id == room.id,
+            Reservation.status.in_(["confirmed", "checked_in"]),
+            Reservation.check_in_date < check_out_date,
+            Reservation.check_out_date > check_in_date,
+        )
+        if exclude_reservation_id:
+            query = query.filter(Reservation.id != exclude_reservation_id)
+        if query.first() is None:
+            return room
+    return None
 
 
 @router.get("/", response_model=list[ReservationDetailResponse])
@@ -43,11 +51,14 @@ def get_reservations(
     status: str | None = Query(None),
     room_id: int | None = Query(None),
     client_id: int | None = Query(None),
+    start: str | None = Query(None),
+    end: str | None = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     query = db.query(Reservation).options(
         joinedload(Reservation.client),
+        joinedload(Reservation.room_type),
         joinedload(Reservation.room)
     )
     
@@ -57,6 +68,10 @@ def get_reservations(
         query = query.filter(Reservation.room_id == room_id)
     if client_id:
         query = query.filter(Reservation.client_id == client_id)
+    if start:
+        query = query.filter(Reservation.check_in_date >= start)
+    if end:
+        query = query.filter(Reservation.check_out_date <= end)
     
     reservations = query.all()
     return reservations
@@ -70,6 +85,7 @@ def get_reservation(
 ):
     reservation = db.query(Reservation).options(
         joinedload(Reservation.client),
+        joinedload(Reservation.room_type),
         joinedload(Reservation.room)
     ).filter(Reservation.id == reservation_id).first()
     
@@ -102,40 +118,113 @@ def create_reservation(
             detail="Client non trouvé"
         )
     
-    # Validate room exists
-    room = db.query(Room).filter(Room.id == reservation_data.room_id).first()
+    # Validate room_type exists
+    room_type = db.query(RoomType).filter(RoomType.id == reservation_data.room_type_id).first()
+    if not room_type:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Catégorie de chambre non trouvée"
+        )
+    
+    # Validate adults + children <= max_occupancy
+    total_guests = reservation_data.adults + reservation_data.children
+    if total_guests > room_type.max_occupancy:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Nombre de personnes dépasse la capacité (max {room_type.max_occupancy})"
+        )
+    
+    # Find available room
+    available_room = find_available_room(
+        db,
+        reservation_data.room_type_id,
+        reservation_data.check_in_date,
+        reservation_data.check_out_date
+    )
+    
+    if not available_room:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Aucune chambre disponible pour ces dates"
+        )
+    
+    # Calculate total amount
+    nights = (reservation_data.check_out_date - reservation_data.check_in_date).days
+    total_amount = Decimal(nights) * room_type.price_per_night
+    
+    # Create reservation with room_id=None initially
+    reservation = Reservation(
+        client_id=reservation_data.client_id,
+        room_type_id=reservation_data.room_type_id,
+        room_id=None,
+        created_by=current_user.id,
+        check_in_date=reservation_data.check_in_date,
+        check_out_date=reservation_data.check_out_date,
+        adults=reservation_data.adults,
+        children=reservation_data.children,
+        total_amount=total_amount,
+        status=reservation_data.status,
+        notes=reservation_data.notes
+    )
+    
+    db.add(reservation)
+    db.commit()
+    db.refresh(reservation)
+    
+    return reservation
+
+
+class AssignRoomRequest(BaseModel):
+    room_id: int
+
+@router.post("/{reservation_id}/assign-room", response_model=ReservationResponse)
+def assign_room(
+    reservation_id: int,
+    room_data: AssignRoomRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    room_id = room_data.room_id
+    
+    # Validate reservation exists
+    reservation = db.query(Reservation).filter(Reservation.id == reservation_id).first()
+    if not reservation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Réservation non trouvée"
+        )
+    
+    # Validate room exists and belongs to correct room_type
+    room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chambre non trouvée"
         )
     
-    # Check room availability
-    if not check_availability(
-        db,
-        reservation_data.room_id,
-        reservation_data.check_in_date,
-        reservation_data.check_out_date
-    ):
+    if room.room_type_id != reservation.room_type_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cette chambre ne correspond pas à la catégorie réservée"
+        )
+    
+    # Check room availability for this specific room
+    query = db.query(Reservation).filter(
+        Reservation.room_id == room_id,
+        Reservation.status.in_(["confirmed", "checked_in"]),
+        Reservation.check_in_date < reservation.check_out_date,
+        Reservation.check_out_date > reservation.check_in_date,
+        Reservation.id != reservation_id
+    )
+    
+    if query.first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cette chambre est déjà réservée pour ces dates"
         )
     
-    reservation = Reservation(
-        client_id=reservation_data.client_id,
-        room_id=reservation_data.room_id,
-        created_by=current_user.id,
-        check_in_date=reservation_data.check_in_date,
-        check_out_date=reservation_data.check_out_date,
-        adults=reservation_data.adults,
-        children=reservation_data.children,
-        total_amount=reservation_data.total_amount,
-        status=reservation_data.status,
-        notes=reservation_data.notes
-    )
-    
-    db.add(reservation)
+    # Assign room
+    reservation.room_id = room_id
     db.commit()
     db.refresh(reservation)
     
@@ -165,6 +254,15 @@ def update_reservation(
                 detail="Client non trouvé"
             )
     
+    # Validate room_type exists if being updated
+    if reservation_data.room_type_id is not None:
+        room_type = db.query(RoomType).filter(RoomType.id == reservation_data.room_type_id).first()
+        if not room_type:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Catégorie de chambre non trouvée"
+            )
+    
     # Validate room exists if being updated
     if reservation_data.room_id is not None:
         room = db.query(Room).filter(Room.id == reservation_data.room_id).first()
@@ -173,6 +271,13 @@ def update_reservation(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chambre non trouvée"
             )
+    
+    # Check for check-in validation
+    if reservation_data.status == "checked_in" and reservation.room_id is None and reservation_data.room_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assignez une chambre avant le check-in"
+        )
     
     # Determine final dates for availability check
     final_check_in = reservation_data.check_in_date or reservation.check_in_date
@@ -186,18 +291,21 @@ def update_reservation(
             detail="La date de départ doit être postérieure à la date d'arrivée"
         )
     
-    # Check availability if dates or room are being changed
-    if (reservation_data.check_in_date is not None or 
-        reservation_data.check_out_date is not None or 
-        reservation_data.room_id is not None):
+    # Check availability if dates or room are being changed and room is assigned
+    if (final_room_id is not None and 
+        (reservation_data.check_in_date is not None or 
+         reservation_data.check_out_date is not None or 
+         reservation_data.room_id is not None)):
         
-        if not check_availability(
-            db,
-            final_room_id,
-            final_check_in,
-            final_check_out,
-            exclude_reservation_id=reservation_id
-        ):
+        query = db.query(Reservation).filter(
+            Reservation.room_id == final_room_id,
+            Reservation.status.in_(["confirmed", "checked_in"]),
+            Reservation.check_in_date < final_check_out,
+            Reservation.check_out_date > final_check_in,
+            Reservation.id != reservation_id
+        )
+        
+        if query.first():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Cette chambre est déjà réservée pour ces dates"
@@ -206,6 +314,8 @@ def update_reservation(
     # Update fields
     if reservation_data.client_id is not None:
         reservation.client_id = reservation_data.client_id
+    if reservation_data.room_type_id is not None:
+        reservation.room_type_id = reservation_data.room_type_id
     if reservation_data.room_id is not None:
         reservation.room_id = reservation_data.room_id
     if reservation_data.check_in_date is not None:
@@ -216,8 +326,6 @@ def update_reservation(
         reservation.adults = reservation_data.adults
     if reservation_data.children is not None:
         reservation.children = reservation_data.children
-    if reservation_data.total_amount is not None:
-        reservation.total_amount = reservation_data.total_amount
     if reservation_data.status is not None:
         reservation.status = reservation_data.status
     if reservation_data.notes is not None:
