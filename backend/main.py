@@ -43,7 +43,7 @@ app = FastAPI(
 )
 
 # Register routers
-from backend.routers import auth, users, room_types, rooms, clients, reservations, invoices, settings
+from backend.routers import auth, users, room_types, rooms, clients, reservations, invoices, settings, housekeeping
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(room_types.router, prefix="/api/v1")
@@ -52,6 +52,7 @@ app.include_router(clients.router, prefix="/api/v1")
 app.include_router(reservations.router, prefix="/api/v1")
 app.include_router(invoices.router, prefix="/api/v1")
 app.include_router(settings.router, prefix="/api/v1")
+app.include_router(housekeeping.router, prefix="/api/v1")
 
 # Mount static files
 frontend_dir = Path(__file__).parent.parent / "frontend"

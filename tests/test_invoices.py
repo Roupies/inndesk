@@ -32,7 +32,6 @@ def test_create_invoice_pending(client, admin_token, reception_token, auth_heade
         "first_name": "Invoice",
         "last_name": "Test",
         "email": "invoice.test@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -54,13 +53,19 @@ def test_create_invoice_pending(client, admin_token, reception_token, auth_heade
     reservation_response = client.post("/api/v1/reservations/", json=reservation_data, headers=reception_headers)
     reservation = reservation_response.json()
     
+    # Change reservation status to checked_out so we can create invoice
+    checkout_response = client.patch(f"/api/v1/reservations/{reservation['id']}", 
+                                   json={"status": "checked_out"}, 
+                                   headers=reception_headers)
+    assert checkout_response.status_code == 200
+    
     # Create invoice with pending status
     invoice_data = {
         "reservation_id": reservation["id"],
         "nights_count": 2,
         "room_rate": "100.00",
         "total_amount": "200.00",
-        "payment_method": "card",
+        "payment_method": "TPE",
         "payment_status": "pending"
     }
     
@@ -72,7 +77,7 @@ def test_create_invoice_pending(client, admin_token, reception_token, auth_heade
     assert data["nights_count"] == 2
     assert Decimal(data["room_rate"]) == Decimal("100.00")
     assert Decimal(data["total_amount"]) == Decimal("200.00")
-    assert data["payment_method"] == "card"
+    assert data["payment_method"] == "TPE"
     assert data["payment_status"] == "pending"
     assert data["paid_at"] is None  # Should be None for pending
     assert "id" in data
@@ -109,7 +114,6 @@ def test_create_invoice_paid(client, admin_token, reception_token, auth_headers)
         "first_name": "Paid",
         "last_name": "Invoice",
         "email": "paid.invoice@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -131,13 +135,19 @@ def test_create_invoice_paid(client, admin_token, reception_token, auth_headers)
     reservation_response = client.post("/api/v1/reservations/", json=reservation_data, headers=reception_headers)
     reservation = reservation_response.json()
     
+    # Change reservation status to checked_out so we can create invoice
+    checkout_response = client.patch(f"/api/v1/reservations/{reservation['id']}", 
+                                   json={"status": "checked_out"}, 
+                                   headers=reception_headers)
+    assert checkout_response.status_code == 200
+    
     # Create invoice with paid status
     invoice_data = {
         "reservation_id": reservation["id"],
         "nights_count": 3,
         "room_rate": "150.00",
         "total_amount": "450.00",
-        "payment_method": "cash",
+        "payment_method": "TPE",
         "payment_status": "paid"
     }
     
@@ -180,7 +190,6 @@ def test_update_invoice_to_paid(client, admin_token, reception_token, auth_heade
         "first_name": "Update",
         "last_name": "Invoice",
         "email": "update.invoice@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -202,13 +211,19 @@ def test_update_invoice_to_paid(client, admin_token, reception_token, auth_heade
     reservation_response = client.post("/api/v1/reservations/", json=reservation_data, headers=reception_headers)
     reservation = reservation_response.json()
     
+    # Change reservation status to checked_out so we can create invoice
+    checkout_response = client.patch(f"/api/v1/reservations/{reservation['id']}", 
+                                   json={"status": "checked_out"}, 
+                                   headers=reception_headers)
+    assert checkout_response.status_code == 200
+    
     # Create pending invoice
     invoice_data = {
         "reservation_id": reservation["id"],
         "nights_count": 2,
         "room_rate": "120.00",
         "total_amount": "240.00",
-        "payment_method": "card",
+        "payment_method": "TPE",
         "payment_status": "pending"
     }
     
@@ -264,7 +279,6 @@ def test_create_invoice_duplicate_reservation(client, admin_token, reception_tok
         "first_name": "Duplicate",
         "last_name": "Invoice",
         "email": "duplicate.invoice@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -286,13 +300,19 @@ def test_create_invoice_duplicate_reservation(client, admin_token, reception_tok
     reservation_response = client.post("/api/v1/reservations/", json=reservation_data, headers=reception_headers)
     reservation = reservation_response.json()
     
+    # Change reservation status to checked_out so we can create invoice
+    checkout_response = client.patch(f"/api/v1/reservations/{reservation['id']}", 
+                                   json={"status": "checked_out"}, 
+                                   headers=reception_headers)
+    assert checkout_response.status_code == 200
+    
     # Create first invoice
     invoice_data = {
         "reservation_id": reservation["id"],
         "nights_count": 2,
         "room_rate": "100.00",
         "total_amount": "200.00",
-        "payment_method": "card",
+        "payment_method": "TPE",
         "payment_status": "pending"
     }
     
@@ -302,7 +322,7 @@ def test_create_invoice_duplicate_reservation(client, admin_token, reception_tok
     # Try to create second invoice for same reservation
     response2 = client.post("/api/v1/invoices/", json=invoice_data, headers=reception_headers)
     
-    assert response2.status_code == 400
+    assert response2.status_code == 409
     assert "facture existe déjà" in response2.json()["detail"]
 
 
@@ -336,7 +356,6 @@ def test_delete_invoice_admin(client, admin_token, reception_token, auth_headers
         "first_name": "Delete",
         "last_name": "Invoice",
         "email": "delete.invoice@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -358,13 +377,19 @@ def test_delete_invoice_admin(client, admin_token, reception_token, auth_headers
     reservation_response = client.post("/api/v1/reservations/", json=reservation_data, headers=reception_headers)
     reservation = reservation_response.json()
     
+    # Change reservation status to checked_out so we can create invoice
+    checkout_response = client.patch(f"/api/v1/reservations/{reservation['id']}", 
+                                   json={"status": "checked_out"}, 
+                                   headers=reception_headers)
+    assert checkout_response.status_code == 200
+    
     # Create invoice
     invoice_data = {
         "reservation_id": reservation["id"],
         "nights_count": 2,
         "room_rate": "100.00",
         "total_amount": "200.00",
-        "payment_method": "card",
+        "payment_method": "TPE",
         "payment_status": "pending"
     }
     
@@ -407,7 +432,6 @@ def test_delete_invoice_receptionist(client, admin_token, reception_token, auth_
         "first_name": "NoDelete",
         "last_name": "Invoice",
         "email": "nodelete.invoice@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -429,13 +453,19 @@ def test_delete_invoice_receptionist(client, admin_token, reception_token, auth_
     reservation_response = client.post("/api/v1/reservations/", json=reservation_data, headers=reception_headers)
     reservation = reservation_response.json()
     
+    # Change reservation status to checked_out so we can create invoice
+    checkout_response = client.patch(f"/api/v1/reservations/{reservation['id']}", 
+                                   json={"status": "checked_out"}, 
+                                   headers=reception_headers)
+    assert checkout_response.status_code == 200
+    
     # Create invoice
     invoice_data = {
         "reservation_id": reservation["id"],
         "nights_count": 2,
         "room_rate": "100.00",
         "total_amount": "200.00",
-        "payment_method": "card",
+        "payment_method": "TPE",
         "payment_status": "pending"
     }
     

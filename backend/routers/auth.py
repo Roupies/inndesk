@@ -13,7 +13,6 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
 def register(
     user_data: UserCreate, 
-    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     # Note: seed.py uses direct DB insertion, not this endpoint — no impact.

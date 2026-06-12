@@ -10,7 +10,6 @@ class ClientCreate(BaseModel):
     phone: str | None = None
     nationality: str | None = None
     id_document: str | None = None
-    notes: str | None = None
 
 
 class ClientUpdate(BaseModel):
@@ -20,7 +19,6 @@ class ClientUpdate(BaseModel):
     phone: str | None = None
     nationality: str | None = None
     id_document: str | None = None
-    notes: str | None = None
 
 
 class ClientListResponse(BaseModel):

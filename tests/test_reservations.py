@@ -32,7 +32,6 @@ def test_create_reservation(client, admin_token, reception_token, auth_headers):
         "first_name": "Reservation",
         "last_name": "Test",
         "email": "reservation.test@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -99,7 +98,6 @@ def test_create_reservation_invalid_dates(client, admin_token, reception_token, 
         "first_name": "Invalid",
         "last_name": "Dates",
         "email": "invalid.dates@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -154,14 +152,12 @@ def test_create_reservation_conflict(client, admin_token, reception_token, auth_
         "first_name": "First",
         "last_name": "Client",
         "email": "first.client@test.com",
-        "gdpr_consent": True
     }
     
     client2_data = {
         "first_name": "Second",
         "last_name": "Client",
         "email": "second.client@test.com",
-        "gdpr_consent": True
     }
     
     client1_response = client.post("/api/v1/clients/", json=client1_data, headers=reception_headers)
@@ -233,7 +229,6 @@ def test_list_reservations_with_nested(client, admin_token, reception_token, aut
         "first_name": "Nested",
         "last_name": "Test",
         "email": "nested.test@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -315,7 +310,6 @@ def test_filter_by_status(client, admin_token, reception_token, auth_headers):
         "first_name": "Filter",
         "last_name": "Test",
         "email": "filter.test@test.com",
-        "gdpr_consent": True
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)

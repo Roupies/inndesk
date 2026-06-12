@@ -115,18 +115,22 @@ def client(db_session):
 
 
 @pytest.fixture
-def admin_token(client):
-    """Register and login an admin user, return Bearer token"""
-    # Register admin user
-    admin_data = {
-        "email": "admin@test.com",
-        "password": "admin123",
-        "full_name": "Test Admin",
-        "role": "admin"
-    }
+def admin_token(client, db_session):
+    """Create an admin user in the database and login, return Bearer token"""
+    from backend.models.user import User
+    from backend.core.security import hash_password
     
-    register_response = client.post("/api/v1/auth/register", json=admin_data)
-    assert register_response.status_code == 201
+    # Create admin user directly in database
+    admin_user = User(
+        email="admin@test.com",
+        password_hash=hash_password("admin123"),
+        full_name="Test Admin",
+        role="admin",
+        is_active=True
+    )
+    
+    db_session.add(admin_user)
+    db_session.commit()
     
     # Login to get token
     login_data = {
@@ -142,18 +146,22 @@ def admin_token(client):
 
 
 @pytest.fixture
-def reception_token(client):
-    """Register and login a receptionist user, return Bearer token"""
-    # Register receptionist user
-    reception_data = {
-        "email": "reception@test.com",
-        "password": "reception123",
-        "full_name": "Test Receptionist",
-        "role": "receptionist"
-    }
+def reception_token(client, db_session):
+    """Create a receptionist user in the database and login, return Bearer token"""
+    from backend.models.user import User
+    from backend.core.security import hash_password
     
-    register_response = client.post("/api/v1/auth/register", json=reception_data)
-    assert register_response.status_code == 201
+    # Create receptionist user directly in database
+    reception_user = User(
+        email="reception@test.com",
+        password_hash=hash_password("reception123"),
+        full_name="Test Receptionist",
+        role="receptionist",
+        is_active=True
+    )
+    
+    db_session.add(reception_user)
+    db_session.commit()
     
     # Login to get token
     login_data = {

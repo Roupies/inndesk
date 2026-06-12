@@ -1,5 +1,5 @@
 def test_create_client(client, reception_token, auth_headers):
-    """Test creating a client with GDPR consent"""
+    """Test creating a client"""
     headers = auth_headers(reception_token)
     
     client_data = {
@@ -8,8 +8,7 @@ def test_create_client(client, reception_token, auth_headers):
         "email": "jean.martin@test.com",
         "phone": "+33612345678",
         "nationality": "France",
-        "id_document": "1234567890",
-        "gdpr_consent": True
+        "id_document": "1234567890"
     }
     
     response = client.post("/api/v1/clients/", json=client_data, headers=headers)
@@ -22,29 +21,10 @@ def test_create_client(client, reception_token, auth_headers):
     assert data["phone"] == "+33612345678"
     assert data["nationality"] == "France"
     assert data["id_document"] == "1234567890"
-    assert data["gdpr_consent"] is True
-    assert "gdpr_consent_at" in data
     assert "id" in data
     assert "created_at" in data
 
 
-def test_create_client_no_gdpr_consent(client, reception_token, auth_headers):
-    """Test creating client without GDPR consent returns 400"""
-    headers = auth_headers(reception_token)
-    
-    client_data = {
-        "first_name": "Jean",
-        "last_name": "Martin",
-        "email": "jean.nogdpr@test.com",
-        "phone": "+33612345678",
-        "nationality": "France",
-        "gdpr_consent": False  # No consent
-    }
-    
-    response = client.post("/api/v1/clients/", json=client_data, headers=headers)
-    
-    assert response.status_code == 400
-    assert "consentement RGPD est obligatoire" in response.json()["detail"]
 
 
 def test_create_client_duplicate_email(client, reception_token, auth_headers):
@@ -54,8 +34,7 @@ def test_create_client_duplicate_email(client, reception_token, auth_headers):
     client_data1 = {
         "first_name": "Jean",
         "last_name": "Martin",
-        "email": "duplicate@test.com",
-        "gdpr_consent": True
+        "email": "duplicate@test.com"
     }
     
     # Create first client
@@ -66,8 +45,7 @@ def test_create_client_duplicate_email(client, reception_token, auth_headers):
     client_data2 = {
         "first_name": "Marie",
         "last_name": "Dupont",
-        "email": "duplicate@test.com",  # Same email
-        "gdpr_consent": True
+        "email": "duplicate@test.com"  # Same email
     }
     
     response2 = client.post("/api/v1/clients/", json=client_data2, headers=headers)
@@ -83,22 +61,19 @@ def test_search_clients(client, reception_token, auth_headers):
     client1_data = {
         "first_name": "Martin",
         "last_name": "Dubois",
-        "email": "martin.dubois@test.com",
-        "gdpr_consent": True
+        "email": "martin.dubois@test.com"
     }
     
     client2_data = {
         "first_name": "Sophie",
         "last_name": "Martin",
-        "email": "sophie.martin@test.com",
-        "gdpr_consent": True
+        "email": "sophie.martin@test.com"
     }
     
     client3_data = {
         "first_name": "Pierre",
         "last_name": "Bernard",
-        "email": "pierre.bernard@test.com",
-        "gdpr_consent": True
+        "email": "pierre.bernard@test.com"
     }
     
     client.post("/api/v1/clients/", json=client1_data, headers=headers)
@@ -149,8 +124,7 @@ def test_delete_client_with_reservation(client, admin_token, reception_token, au
     client_data = {
         "first_name": "Client",
         "last_name": "WithReservation",
-        "email": "client.reservation@test.com",
-        "gdpr_consent": True
+        "email": "client.reservation@test.com"
     }
     
     client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
@@ -190,8 +164,7 @@ def test_list_clients(client, reception_token, auth_headers):
         "first_name": "Test",
         "last_name": "Client",
         "email": "test.client@test.com",
-        "id_document": "SECRET123",
-        "gdpr_consent": True
+        "id_document": "SECRET123"
     }
     
     create_response = client.post("/api/v1/clients/", json=client_data, headers=headers)
@@ -219,8 +192,7 @@ def test_get_single_client_includes_id_document(client, reception_token, auth_he
         "first_name": "Single",
         "last_name": "ClientTest",
         "email": "single.client@test.com",
-        "id_document": "INCLUDED123",
-        "gdpr_consent": True
+        "id_document": "INCLUDED123"
     }
     
     create_response = client.post("/api/v1/clients/", json=client_data, headers=headers)

@@ -118,8 +118,24 @@ def create_reservation(
             detail="Client non trouvé"
         )
     
+    # Determine room_type_id and room_id
+    if reservation_data.room_id and not reservation_data.room_type_id:
+        # room_id provided but not room_type_id - derive room_type_id from room
+        room = db.query(Room).filter(Room.id == reservation_data.room_id).first()
+        if not room:
+            raise HTTPException(status_code=404, detail="Chambre introuvable")
+        room_type_id = room.room_type_id
+        assigned_room_id = reservation_data.room_id
+    elif reservation_data.room_type_id:
+        # room_type_id provided
+        room_type_id = reservation_data.room_type_id
+        assigned_room_id = reservation_data.room_id
+    else:
+        # Neither provided
+        raise HTTPException(status_code=400, detail="room_type_id ou room_id requis")
+    
     # Validate room_type exists
-    room_type = db.query(RoomType).filter(RoomType.id == reservation_data.room_type_id).first()
+    room_type = db.query(RoomType).filter(RoomType.id == room_type_id).first()
     if not room_type:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -134,29 +150,59 @@ def create_reservation(
             detail=f"Nombre de personnes dépasse la capacité (max {room_type.max_occupancy})"
         )
     
-    # Find available room
-    available_room = find_available_room(
-        db,
-        reservation_data.room_type_id,
-        reservation_data.check_in_date,
-        reservation_data.check_out_date
-    )
-    
-    if not available_room:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Aucune chambre disponible pour ces dates"
+    # Check room availability if specific room is assigned
+    if assigned_room_id:
+        # Validate the specific room exists and is of correct type
+        room = db.query(Room).filter(Room.id == assigned_room_id).first()
+        if not room:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chambre non trouvée"
+            )
+        
+        if room.room_type_id != room_type_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cette chambre ne correspond pas à la catégorie réservée"
+            )
+        
+        # Check availability for this specific room
+        query = db.query(Reservation).filter(
+            Reservation.room_id == assigned_room_id,
+            Reservation.status.in_(["confirmed", "checked_in"]),
+            Reservation.check_in_date < reservation_data.check_out_date,
+            Reservation.check_out_date > reservation_data.check_in_date,
         )
+        
+        if query.first():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Cette chambre est déjà réservée pour ces dates"
+            )
+    else:
+        # Find available room of the correct type
+        available_room = find_available_room(
+            db,
+            room_type_id,
+            reservation_data.check_in_date,
+            reservation_data.check_out_date
+        )
+        
+        if not available_room:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Aucune chambre disponible pour ces dates"
+            )
     
     # Calculate total amount
     nights = (reservation_data.check_out_date - reservation_data.check_in_date).days
     total_amount = Decimal(nights) * room_type.price_per_night
     
-    # Create reservation with room_id=None initially
+    # Create reservation
     reservation = Reservation(
         client_id=reservation_data.client_id,
-        room_type_id=reservation_data.room_type_id,
-        room_id=None,
+        room_type_id=room_type_id,
+        room_id=assigned_room_id,
         created_by=current_user.id,
         check_in_date=reservation_data.check_in_date,
         check_out_date=reservation_data.check_out_date,

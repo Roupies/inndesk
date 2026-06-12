@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 class InvoiceCreate(BaseModel):
     reservation_id: int
+    payment_status: Literal["pending", "paid"] | None = "pending"
 
 
 class InvoiceUpdate(BaseModel):

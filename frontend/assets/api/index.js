@@ -10,7 +10,8 @@ window.InnDesk = {
         reservations: typeof reservationsAPI !== 'undefined' ? reservationsAPI : null,
         clients: typeof clientsAPI !== 'undefined' ? clientsAPI : null,
         invoices: typeof invoicesAPI !== 'undefined' ? invoicesAPI : null,
-        settings: typeof settingsAPI !== 'undefined' ? settingsAPI : null
+        settings: typeof settingsAPI !== 'undefined' ? settingsAPI : null,
+        housekeeping: typeof housekeepingAPI !== 'undefined' ? housekeepingAPI : null
     },
     utils: {
         formatDate,

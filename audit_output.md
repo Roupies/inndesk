@@ -1,3 +1,144 @@
+# Audit Output
+
+## 1. Frontend structure
+```bash
+find frontend/ -type f | sort
+```
+
+frontend/assets/api/auth.js
+frontend/assets/api/clients.js
+frontend/assets/api/index.js
+frontend/assets/api/invoices.js
+frontend/assets/api/reservations.js
+frontend/assets/api/rooms.js
+frontend/assets/api/settings.js
+frontend/assets/app.js
+frontend/assets/js/clients/handlers.js
+frontend/assets/js/clients/init.js
+frontend/assets/js/clients/modals.js
+frontend/assets/js/clients/render.js
+frontend/assets/js/clients/state.js
+frontend/assets/js/clients/utils.js
+frontend/assets/js/dashboard/init.js
+frontend/assets/js/dashboard/render.js
+frontend/assets/js/invoices/handlers.js
+frontend/assets/js/invoices/init.js
+frontend/assets/js/invoices/modals.js
+frontend/assets/js/invoices/render.js
+frontend/assets/js/invoices/state.js
+frontend/assets/js/invoices/utils.js
+frontend/assets/js/planning/handlers.js
+frontend/assets/js/planning/init.js
+frontend/assets/js/planning/render.js
+frontend/assets/js/planning/state.js
+frontend/assets/js/planning/utils.js
+frontend/assets/js/reservations/handlers.js
+frontend/assets/js/reservations/init.js
+frontend/assets/js/reservations/modals.js
+frontend/assets/js/reservations/render.js
+frontend/assets/js/reservations/state.js
+frontend/assets/js/reservations/utils.js
+frontend/assets/js/rooms/handlers.js
+frontend/assets/js/rooms/init.js
+frontend/assets/js/rooms/modals.js
+frontend/assets/js/rooms/render.js
+frontend/assets/js/rooms/state.js
+frontend/assets/js/settings/handlers.js
+frontend/assets/js/settings/init.js
+frontend/assets/js/settings/modals.js
+frontend/assets/js/settings/render.js
+frontend/assets/js/settings/state.js
+frontend/assets/js/settings/utils.js
+frontend/assets/style.css
+frontend/clients.html
+frontend/dashboard.html
+frontend/index.html
+frontend/invoices.html
+frontend/planning.html
+frontend/reservations.html
+frontend/rooms.html
+frontend/settings.html
+
+## 2. hotel_setting.py model
+```bash
+cat backend/models/hotel_setting.py
+```
+
+from sqlalchemy import Column, Integer, String, Float, Boolean, TIMESTAMP, text
+from backend.core.database import Base
+
+
+class HotelSetting(Base):
+    __tablename__ = "hotel_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(String(500), nullable=False)
+    created_at = Column(
+        TIMESTAMP(timezone=True), 
+        server_default=text("NOW()"),
+        nullable=False
+    )
+    updated_at = Column(
+        TIMESTAMP(timezone=True), 
+        server_default=text("NOW()"),
+        onupdate=text("NOW()"),
+        nullable=False
+    )
+
+## 3. reservation.py model
+```bash
+cat backend/models/reservation.py
+```
+
+from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from backend.core.database import Base
+
+
+class Reservation(Base):
+    __tablename__ = "reservations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    room_type_id = Column(Integer, ForeignKey("room_types.id"), nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    check_in_date = Column(Date, nullable=False)
+    check_out_date = Column(Date, nullable=False)
+    status = Column(String(20), nullable=False, default="confirmed")
+    adults = Column(Integer, nullable=False, default=1)
+    children = Column(Integer, nullable=False, default=0)
+    notes = Column(Text)
+    total_amount = Column(Numeric(10, 2))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    client = relationship("Client", lazy="select")
+    room_type = relationship("RoomType", lazy="select")
+    room = relationship("Room", lazy="select")
+    created_by_user = relationship("User", lazy="select")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show')",
+            name="check_status"
+        ),
+        CheckConstraint("adults > 0", name="check_adults_positive"),
+        CheckConstraint("children >= 0", name="check_children_not_negative"),
+        CheckConstraint("check_out_date > check_in_date", name="chk_dates"),
+    )
+
+    def __repr__(self):
+        return f"<Reservation(id={self.id}, client_id={self.client_id})>"
+
+## 4. invoices.py router (full file)
+```bash
+cat backend/routers/invoices.py
+```
+
 import io
 import base64
 import traceback
@@ -13,7 +154,7 @@ from weasyprint import HTML, CSS
 
 from backend.core.config import get_settings
 from backend.core.database import get_db
-from backend.core.security import get_current_user, require_admin
+from backend.core.security import get_current_user
 from backend.models.client import Client
 from backend.models.invoice import Invoice
 from backend.models.reservation import Reservation
@@ -259,11 +400,6 @@ def create_invoice(
         total_ttc=total_ttc,
         payment_status="pending"
     )
-    
-    # Handle payment_status "paid" if specified in request
-    if invoice_data.payment_status == "paid":
-        invoice.payment_status = "paid"
-        invoice.paid_at = datetime.now(timezone.utc)
     
     db.add(invoice)
     db.commit()
@@ -529,15 +665,36 @@ def send_invoice_email(
             detail=f"Erreur lors de l'envoi de l'email: {str(e)}"
         )
 
+## 5. All routers — check if dashboard.py exists
+```bash
+ls backend/routers/
+```
 
-@router.delete("/{invoice_id}", status_code=204)
-def delete_invoice(
-    invoice_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)  # 403 automatique si pas admin
-):
-    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Facture introuvable")
-    db.delete(invoice)
-    db.commit()
+__init__.py
+__pycache__
+auth.py
+clients.py
+invoices.py
+reservations.py
+room_types.py
+rooms.py
+settings.py
+users.py
+
+## 6. Tests directory location
+```bash
+ls tests/ 2>/dev/null && echo "tests/ IS at root" || echo "tests/ NOT at root"
+ls backend/tests/ 2>/dev/null && echo "backend/tests/ EXISTS" || echo "backend/tests/ does NOT exist"
+```
+
+__init__.py
+__pycache__
+conftest.py
+test_auth.py
+test_clients.py
+test_invoices.py
+test_reservations.py
+test_rooms.py
+test_users.py
+tests/ IS at root
+backend/tests/ does NOT exist

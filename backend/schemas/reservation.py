@@ -11,7 +11,8 @@ from .room_type import RoomTypeResponse
 
 class ReservationCreate(BaseModel):
     client_id: int
-    room_type_id: int
+    room_type_id: int | None = None
+    room_id: int | None = None
     check_in_date: date
     check_out_date: date
     adults: int = 1
