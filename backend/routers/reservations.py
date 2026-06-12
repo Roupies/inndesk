@@ -44,7 +44,7 @@ def find_available_room(
         )
         if exclude_reservation_id:
             query = query.filter(Reservation.id != exclude_reservation_id)
-        if query.count() == 0:
+        if query.first() is None:
             return room
     return None
 
