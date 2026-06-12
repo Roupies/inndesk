@@ -1,8 +1,9 @@
 import io
 import base64
-import traceback
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
@@ -29,35 +30,12 @@ from backend.schemas.invoice import (
     InvoiceStatsResponse,
     SendInvoiceEmailRequest
 )
+from backend.services.invoice_service import generate_invoice_pdf, get_hotel_settings_dict
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
-# Initialize Jinja2 for PDF templates
-jinja_env = Environment(loader=FileSystemLoader("backend/templates"))
-
-
-def get_hotel_settings_dict(db: Session) -> dict:
-    """Get hotel settings as a dictionary with fallback values."""
-    settings_map = {}
-    
-    # Get all settings from database
-    settings = db.query(HotelSetting).all()
-    for setting in settings:
-        settings_map[setting.key] = setting.value
-    
-    # Return settings with fallbacks
-    return {
-        "hotel_name": settings_map.get("hotel_name", "InnDesk Hôtel"),
-        "hotel_address": settings_map.get("hotel_address", "123 Rue de la Paix"),
-        "hotel_city": settings_map.get("hotel_city", "Paris"),
-        "hotel_zip": settings_map.get("hotel_zip", "75001"),
-        "hotel_country": settings_map.get("hotel_country", "France"),
-        "hotel_phone": settings_map.get("hotel_phone", "01 23 45 67 89"),
-        "hotel_email": settings_map.get("hotel_email", "contact@inndesk-hotel.fr"),
-        "hotel_siret": settings_map.get("hotel_siret", "12345678901234"),
-        "tva_rate": float(settings_map.get("tva_rate", "10.0"))
-    }
 
 
 @router.get("/stats", response_model=InvoiceStatsResponse)
@@ -322,78 +300,24 @@ def get_invoice_pdf(
     db: Session = Depends(get_db)
 ):
     """Generate and download PDF invoice"""
-    # Get invoice with all related data
-    invoice = (
-        db.query(Invoice)
-        .join(Reservation)
-        .join(Client)
-        .join(Room)
-        .join(RoomType)
-        .options(
-            joinedload(Invoice.reservation).joinedload(Reservation.client),
-            joinedload(Invoice.reservation).joinedload(Reservation.room).joinedload(Room.room_type)
+    try:
+        pdf_bytes, filename = generate_invoice_pdf(invoice_id, db)
+        
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"}
         )
-        .filter(Invoice.id == invoice_id)
-        .first()
-    )
-    
-    if not invoice:
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Facture non trouvée"
+            detail=str(e)
         )
-    
-    # Get hotel settings from database
-    hotel_settings = get_hotel_settings_dict(db)
-    
-    # Format hotel address for PDF
-    hotel_full_address = []
-    if hotel_settings["hotel_address"]:
-        hotel_full_address.append(hotel_settings["hotel_address"])
-    
-    city_line = []
-    if hotel_settings["hotel_zip"]:
-        city_line.append(hotel_settings["hotel_zip"])
-    if hotel_settings["hotel_city"]:
-        city_line.append(hotel_settings["hotel_city"])
-    if hotel_settings["hotel_country"] and hotel_settings["hotel_country"] != "France":
-        city_line.append(hotel_settings["hotel_country"])
-    if city_line:
-        hotel_full_address.append(" ".join(city_line))
-    
-    # Prepare template data
-    template_data = {
-        "invoice": invoice,
-        "reservation": invoice.reservation,
-        "client": invoice.reservation.client,
-        "room": invoice.reservation.room,
-        "room_type": invoice.reservation.room.room_type,
-        "hotel_name": hotel_settings["hotel_name"],
-        "hotel_address": "\n".join(hotel_full_address),
-        "hotel_siret": hotel_settings["hotel_siret"],
-        "hotel_email": hotel_settings["hotel_email"],
-        "hotel_phone": hotel_settings["hotel_phone"],
-        "issue_date": datetime.now(timezone.utc).strftime("%d/%m/%Y")
-    }
-    
-    # Render HTML template
-    template = jinja_env.get_template("invoice.html")
-    html_content = template.render(**template_data)
-    
-    # Generate PDF
-    pdf_buffer = io.BytesIO()
-    HTML(string=html_content).write_pdf(pdf_buffer)
-    pdf_buffer.seek(0)
-    
-    # Create filename
-    client_lastname = invoice.reservation.client.last_name.replace(" ", "_")
-    filename = f"facture_{invoice.id}_{client_lastname}.pdf"
-    
-    return StreamingResponse(
-        io.BytesIO(pdf_buffer.read()),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @router.post("/{invoice_id}/send-email")
@@ -404,16 +328,13 @@ def send_invoice_email(
     db: Session = Depends(get_db)
 ):
     """Send invoice PDF via email"""
-    # Get invoice with all related data
+    # Check invoice exists for email content
     invoice = (
         db.query(Invoice)
         .join(Reservation)
         .join(Client)
-        .join(Room)
-        .join(RoomType)
         .options(
-            joinedload(Invoice.reservation).joinedload(Reservation.client),
-            joinedload(Invoice.reservation).joinedload(Reservation.room).joinedload(Room.room_type)
+            joinedload(Invoice.reservation).joinedload(Reservation.client)
         )
         .filter(Invoice.id == invoice_id)
         .first()
@@ -438,52 +359,11 @@ def send_invoice_email(
         
         resend.api_key = settings.RESEND_API_KEY
         
-        # Get hotel settings from database
+        # Generate PDF using service
+        pdf_bytes, filename = generate_invoice_pdf(invoice_id, db)
+        
+        # Get hotel settings for email content
         hotel_settings = get_hotel_settings_dict(db)
-        
-        # Format hotel address for PDF
-        hotel_full_address = []
-        if hotel_settings["hotel_address"]:
-            hotel_full_address.append(hotel_settings["hotel_address"])
-        
-        city_line = []
-        if hotel_settings["hotel_zip"]:
-            city_line.append(hotel_settings["hotel_zip"])
-        if hotel_settings["hotel_city"]:
-            city_line.append(hotel_settings["hotel_city"])
-        if hotel_settings["hotel_country"] and hotel_settings["hotel_country"] != "France":
-            city_line.append(hotel_settings["hotel_country"])
-        if city_line:
-            hotel_full_address.append(" ".join(city_line))
-        
-        # Generate PDF in memory
-        template_data = {
-            "invoice": invoice,
-            "reservation": invoice.reservation,
-            "client": invoice.reservation.client,
-            "room": invoice.reservation.room,
-            "room_type": invoice.reservation.room.room_type,
-            "hotel_name": hotel_settings["hotel_name"],
-            "hotel_address": "\n".join(hotel_full_address),
-            "hotel_siret": hotel_settings["hotel_siret"],
-            "hotel_email": hotel_settings["hotel_email"],
-            "hotel_phone": hotel_settings["hotel_phone"],
-            "issue_date": datetime.now(timezone.utc).strftime("%d/%m/%Y")
-        }
-        
-        template = jinja_env.get_template("invoice.html")
-        html_content = template.render(**template_data)
-        
-        pdf_buffer = io.BytesIO()
-        HTML(string=html_content).write_pdf(pdf_buffer)
-        pdf_buffer.seek(0)
-        
-        # Create filename
-        client_lastname = invoice.reservation.client.last_name.replace(" ", "_")
-        filename = f"facture_{invoice.id}_{client_lastname}.pdf"
-        
-        # Get PDF bytes for attachment
-        pdf_bytes = pdf_buffer.read()
         
         # Determine from email - use fallback if not configured
         from_email = settings.RESEND_FROM_EMAIL
@@ -519,10 +399,18 @@ def send_invoice_email(
     except HTTPException:
         # Re-raise HTTP exceptions (like 400 for missing API key)
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
     except Exception as e:
-        # Print full traceback to console for debugging
-        print("Error sending invoice email:")
-        print(traceback.format_exc())
+        logger.error("Error sending invoice email", exc_info=True)
         
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
