@@ -5,7 +5,7 @@ const clientsAPI = {
     },
     
     async getById(id) {
-        return await apiFetch(`/clients/${id}/`);
+        return await apiFetch(`/clients/${id}`);
     },
     
     async create(data) {
@@ -16,10 +16,24 @@ const clientsAPI = {
     },
     
     async update(id, data) {
-        return await apiFetch(`/clients/${id}/`, {
+        return await apiFetch(`/clients/${id}`, {
             method: 'PATCH',
             body: JSON.stringify(data)
         });
+    },
+    
+    async delete(id) {
+        return await apiFetch(`/clients/${id}`, {
+            method: 'DELETE'
+        });
+    },
+    
+    async getStats() {
+        return await apiFetch('/clients/stats');
+    },
+    
+    async getReservations(clientId) {
+        return await apiFetch(`/clients/${clientId}/reservations`);
     },
     
     async search(query) {

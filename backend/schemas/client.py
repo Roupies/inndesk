@@ -10,7 +10,6 @@ class ClientCreate(BaseModel):
     phone: str | None = None
     nationality: str | None = None
     id_document: str | None = None
-    gdpr_consent: bool
     notes: str | None = None
 
 
@@ -33,8 +32,6 @@ class ClientListResponse(BaseModel):
     email: str | None
     phone: str | None
     nationality: str | None
-    gdpr_consent: bool
-    gdpr_consent_at: datetime | None
     created_at: datetime
 
 

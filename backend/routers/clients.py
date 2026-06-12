@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.core.database import get_db
@@ -9,13 +10,40 @@ from backend.models.client import Client
 from backend.models.reservation import Reservation
 from backend.models.user import User
 from backend.schemas.client import ClientCreate, ClientResponse, ClientUpdate, ClientListResponse, ClientDetailResponse
+from backend.schemas.reservation import ReservationResponse
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
+
+
+@router.get("/stats")
+def get_clients_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    total_clients = db.query(Client).count()
+    clients_with_email = db.query(Client).filter(Client.email.isnot(None)).count()
+    clients_with_phone = db.query(Client).filter(Client.phone.isnot(None)).count()
+    
+    # Clients created this month
+    current_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    clients_this_month = db.query(Client).filter(
+        Client.created_at >= current_month
+    ).count()
+    
+    return {
+        "total_clients": total_clients,
+        "clients_with_email": clients_with_email,
+        "clients_with_phone": clients_with_phone,
+        "clients_this_month": clients_this_month
+    }
 
 
 @router.get("/", response_model=list[ClientListResponse])
 def get_clients(
     search: str | None = Query(None),
+    nationality: str | None = Query(None),
+    limit: int = Query(50, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -26,10 +54,14 @@ def get_clients(
         query = query.filter(
             (Client.first_name.ilike(search_pattern)) |
             (Client.last_name.ilike(search_pattern)) |
-            (Client.email.ilike(search_pattern))
+            (Client.email.ilike(search_pattern)) |
+            (Client.phone.ilike(search_pattern))
         )
     
-    clients = query.all()
+    if nationality:
+        query = query.filter(Client.nationality.ilike(f"%{nationality}%"))
+    
+    clients = query.order_by(Client.created_at.desc()).offset(offset).limit(limit).all()
     return clients
 
 
@@ -54,13 +86,6 @@ def create_client(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Check GDPR consent
-    if not client_data.gdpr_consent:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Le consentement RGPD est obligatoire pour créer une fiche client"
-        )
-    
     # Check email uniqueness if provided
     if client_data.email:
         existing_client = db.query(Client).filter(Client.email == client_data.email).first()
@@ -77,8 +102,6 @@ def create_client(
         phone=client_data.phone,
         nationality=client_data.nationality,
         id_document=client_data.id_document,
-        gdpr_consent=client_data.gdpr_consent,
-        gdpr_consent_at=datetime.now(timezone.utc)
     )
     
     db.add(client)
@@ -153,3 +176,24 @@ def delete_client(
     
     db.delete(client)
     db.commit()
+
+
+@router.get("/{client_id}/reservations", response_model=list[ReservationResponse])
+def get_client_reservations(
+    client_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # First check if client exists
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client non trouvé"
+        )
+    
+    reservations = db.query(Reservation).filter(
+        Reservation.client_id == client_id
+    ).order_by(Reservation.check_in_date.desc()).all()
+    
+    return reservations

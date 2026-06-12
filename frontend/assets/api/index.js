@@ -6,9 +6,11 @@ window.InnDesk = {
                 return await apiFetch('/dashboard/');
             }
         },
-        rooms: roomsAPI,
-        reservations: reservationsAPI,
-        clients: clientsAPI
+        rooms: typeof roomsAPI !== 'undefined' ? roomsAPI : null,
+        reservations: typeof reservationsAPI !== 'undefined' ? reservationsAPI : null,
+        clients: typeof clientsAPI !== 'undefined' ? clientsAPI : null,
+        invoices: typeof invoicesAPI !== 'undefined' ? invoicesAPI : null,
+        settings: typeof settingsAPI !== 'undefined' ? settingsAPI : null
     },
     utils: {
         formatDate,

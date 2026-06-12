@@ -135,9 +135,7 @@ def main():
                 last_name=last_name,
                 email=email,
                 nationality=nationality,
-                phone=phone,
-                gdpr_consent=True,
-                gdpr_consent_at=datetime.now(timezone.utc)
+                phone=phone
             )
             db.add(client)
             clients.append(client)
@@ -191,26 +189,40 @@ def main():
 
         print("🧾 Creating invoices...")
         
-        # Create invoices
-        # James Wilson reservation → amount: 597.00, payment_method: card, status: paid, paid_at: now
+        # Create invoices with proper TVA calculations
+        # James Wilson reservation → total_ttc: 597.00, TVA 10%
         james_reservation = next(r for r in reservations if r.client_id == clients[2].id)
+        james_total_ttc = Decimal("597.00")
+        james_total_ht = (james_total_ttc / Decimal("1.1")).quantize(Decimal("0.01"))
+        james_tva_amount = (james_total_ttc - james_total_ht).quantize(Decimal("0.01"))
+        
         james_invoice = Invoice(
             reservation_id=james_reservation.id,
             nights_count=3,
             room_rate=Decimal("199.00"),
-            total_amount=Decimal("597.00"),
+            total_amount=james_total_ht,  # HT amount
+            tva_rate=Decimal("10.0"),
+            tva_amount=james_tva_amount,
+            total_ttc=james_total_ttc,
             payment_method="card",
             payment_status="paid",
             paid_at=datetime.now(timezone.utc)
         )
         
-        # Jean Martin reservation → amount: 267.00, payment_method: cash, status: pending
+        # Jean Martin reservation → total_ttc: 267.00, TVA 10%
         jean_reservation = next(r for r in reservations if r.client_id == clients[0].id)
+        jean_total_ttc = Decimal("267.00")
+        jean_total_ht = (jean_total_ttc / Decimal("1.1")).quantize(Decimal("0.01"))
+        jean_tva_amount = (jean_total_ttc - jean_total_ht).quantize(Decimal("0.01"))
+        
         jean_invoice = Invoice(
             reservation_id=jean_reservation.id,
             nights_count=3,
             room_rate=Decimal("89.00"),
-            total_amount=Decimal("267.00"),
+            total_amount=jean_total_ht,  # HT amount
+            tva_rate=Decimal("10.0"),
+            tva_amount=jean_tva_amount,
+            total_ttc=jean_total_ttc,
             payment_method="cash",
             payment_status="pending"
         )

@@ -12,7 +12,10 @@ class Invoice(Base):
     reservation_id = Column(Integer, ForeignKey("reservations.id"), unique=True, nullable=False)
     nights_count = Column(Integer, nullable=False)
     room_rate = Column(Numeric(10, 2), nullable=False)
-    total_amount = Column(Numeric(10, 2), nullable=False)
+    total_amount = Column(Numeric(10, 2), nullable=False)  # HT amount
+    tva_rate = Column(Numeric(5, 2), nullable=False, default=10.0)  # TVA percentage (10%)
+    tva_amount = Column(Numeric(10, 2), nullable=False)  # TVA amount in euros
+    total_ttc = Column(Numeric(10, 2), nullable=False)  # Total TTC (with TVA)
     payment_method = Column(String(50), default="TPE")
     payment_status = Column(String(20), nullable=False, default="pending")
     paid_at = Column(DateTime(timezone=True))

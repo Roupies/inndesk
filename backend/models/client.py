@@ -14,8 +14,6 @@ class Client(Base):
     phone = Column(String(30))
     nationality = Column(String(100))
     id_document = Column(String(100))
-    gdpr_consent = Column(Boolean, nullable=False, default=False)
-    gdpr_consent_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):

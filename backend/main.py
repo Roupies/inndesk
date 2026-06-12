@@ -10,7 +10,7 @@ from sqlalchemy.schema import CreateTable
 from sqlalchemy.dialects import postgresql as pg_dialect
 
 from backend.core.database import Base, engine
-from backend.models import User, RoomType, Room, Client, Reservation, Invoice
+from backend.models import User, RoomType, Room, Client, Reservation, Invoice, HotelSetting
 
 
 @asynccontextmanager
@@ -43,7 +43,7 @@ app = FastAPI(
 )
 
 # Register routers
-from backend.routers import auth, users, room_types, rooms, clients, reservations, invoices
+from backend.routers import auth, users, room_types, rooms, clients, reservations, invoices, settings
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(room_types.router, prefix="/api/v1")
@@ -51,6 +51,7 @@ app.include_router(rooms.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
 app.include_router(reservations.router, prefix="/api/v1")
 app.include_router(invoices.router, prefix="/api/v1")
+app.include_router(settings.router, prefix="/api/v1")
 
 # Mount static files
 frontend_dir = Path(__file__).parent.parent / "frontend"

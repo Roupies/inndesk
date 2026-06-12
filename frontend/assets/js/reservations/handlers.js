@@ -7,6 +7,11 @@ document.querySelectorAll('input[name="clientType"]').forEach(radio => {
         const isNew = e.target.value === 'new';
         document.getElementById('newClientSection').style.display = isNew ? 'block' : 'none';
         document.getElementById('existingClientSection').style.display = isNew ? 'none' : 'block';
+
+        // Toggle required on hidden fields to prevent browser validation error
+        ['newClientFirstName', 'newClientLastName'].forEach(id => {
+            document.getElementById(id).required = isNew;
+        });
     });
 });
 
@@ -40,14 +45,21 @@ document.getElementById('createReservationForm').addEventListener('submit', asyn
     let clientId;
 
     try {
-        // Handle client creation or selection
         if (clientType === 'new') {
+            if (!document.getElementById('newClientFirstName').value.trim()) {
+                showToast('Le prénom est requis', 'error');
+                return;
+            }
+            if (!document.getElementById('newClientLastName').value.trim()) {
+                showToast('Le nom est requis', 'error');
+                return;
+            }
+            
             const clientData = {
                 first_name: document.getElementById('newClientFirstName').value,
                 last_name: document.getElementById('newClientLastName').value,
                 email: document.getElementById('newClientEmail').value,
-                phone: document.getElementById('newClientPhone').value,
-                gdpr_consent: document.getElementById('newClientGdpr').checked
+                phone: document.getElementById('newClientPhone').value
             };
             
             const newClient = await InnDesk.api.clients.create(clientData);
@@ -60,7 +72,6 @@ document.getElementById('createReservationForm').addEventListener('submit', asyn
             }
         }
 
-        // Create reservation
         const reservationData = {
             client_id: parseInt(clientId),
             room_type_id: parseInt(document.getElementById('roomTypeSelect').value),

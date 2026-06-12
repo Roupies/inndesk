@@ -8,9 +8,16 @@ CREATE TABLE clients (
 	phone VARCHAR(30), 
 	nationality VARCHAR(100), 
 	id_document VARCHAR(100), 
-	gdpr_consent BOOLEAN NOT NULL, 
-	gdpr_consent_at TIMESTAMP WITH TIME ZONE, 
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT now(), 
+	PRIMARY KEY (id)
+);
+
+CREATE TABLE hotel_settings (
+	id SERIAL NOT NULL, 
+	key VARCHAR(100) NOT NULL, 
+	value VARCHAR(500) NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL, 
 	PRIMARY KEY (id)
 );
 
@@ -81,6 +88,9 @@ CREATE TABLE invoices (
 	nights_count INTEGER NOT NULL, 
 	room_rate NUMERIC(10, 2) NOT NULL, 
 	total_amount NUMERIC(10, 2) NOT NULL, 
+	tva_rate NUMERIC(5, 2) NOT NULL, 
+	tva_amount NUMERIC(10, 2) NOT NULL, 
+	total_ttc NUMERIC(10, 2) NOT NULL, 
 	payment_method VARCHAR(50), 
 	payment_status VARCHAR(20) NOT NULL, 
 	paid_at TIMESTAMP WITH TIME ZONE, 

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facture {{ invoice.id }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            background: white;
+            height: auto !important;
+        }
+        
+        .invoice-container {
+            width: 210mm;
+            margin: 0 auto;
+            padding: 20mm;
+            background: white;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #1a5f7a;
+            padding-bottom: 20px;
+        }
+        
+        .hotel-info {
+            flex: 1;
+        }
+        
+        .hotel-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a5f7a;
+            margin-bottom: 10px;
+        }
+        
+        .hotel-details {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .invoice-title {
+            flex: 1;
+            text-align: right;
+        }
+        
+        .invoice-title h1 {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1a5f7a;
+            margin-bottom: 10px;
+        }
+        
+        .invoice-number {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .invoice-date {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .client-section {
+            margin-bottom: 40px;
+        }
+        
+        .client-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1a5f7a;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+        
+        .client-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .reservation-section {
+            margin-bottom: 40px;
+        }
+        
+        .reservation-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1a5f7a;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+        
+        .reservation-details {
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .reservation-item {
+            flex: 1;
+            margin-right: 20px;
+        }
+        
+        .reservation-item:last-child {
+            margin-right: 0;
+        }
+        
+        .reservation-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        
+        .reservation-value {
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        .items-table th {
+            background: #1a5f7a;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .items-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 11px;
+        }
+        
+        .items-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .totals-section {
+            float: right;
+            width: 300px;
+            margin-bottom: 40px;
+        }
+        
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .totals-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+        
+        .totals-table .total-label {
+            font-weight: bold;
+            text-align: right;
+            width: 60%;
+        }
+        
+        .totals-table .total-value {
+            text-align: right;
+            font-weight: bold;
+            width: 40%;
+        }
+        
+        .totals-table .final-total {
+            background: #1a5f7a;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .payment-section {
+            clear: both;
+            margin-bottom: 40px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .payment-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1a5f7a;
+            margin-bottom: 10px;
+        }
+        
+        .payment-status {
+            font-size: 12px;
+        }
+        
+        .payment-status.paid {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .payment-status.pending {
+            color: #f97316;
+            font-weight: bold;
+        }
+        
+        .footer {
+            position: relative;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .footer p {
+            margin-bottom: 5px;
+        }
+        
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        
+        @page {
+            size: A4;
+            margin: 15mm 15mm 20mm 15mm;
+        }
+        
+        @media print {
+            .invoice-container {
+                margin: 0;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="hotel-info">
+                <div class="hotel-name">{{ hotel_name }}</div>
+                <div class="hotel-details">
+                    {{ hotel_address }}<br>
+                    SIRET : {{ hotel_siret }}<br>
+                    Tél : {{ hotel_phone }}<br>
+                    Email : {{ hotel_email }}
+                </div>
+            </div>
+            
+            <div class="invoice-title">
+                <h1>FACTURE</h1>
+                <div class="invoice-number">N° {{ invoice.id }}</div>
+                <div class="invoice-date">{{ issue_date }}</div>
+            </div>
+        </div>
+        
+        <!-- Client Section -->
+        <div class="client-section">
+            <div class="client-title">FACTURÉ À</div>
+            <div class="client-info">
+                <strong>{{ client.first_name }} {{ client.last_name }}</strong><br>
+                {% if client.email %}Email : {{ client.email }}<br>{% endif %}
+                {% if client.phone %}Tél : {{ client.phone }}<br>{% endif %}
+                {% if client.nationality %}Nationalité : {{ client.nationality }}{% endif %}
+            </div>
+        </div>
+        
+        <!-- Reservation Details -->
+        <div class="reservation-section">
+            <div class="reservation-title">DÉTAILS DU SÉJOUR</div>
+            <div class="reservation-details">
+                <div class="reservation-item">
+                    <div class="reservation-label">Chambre</div>
+                    <div class="reservation-value">{{ room.number }}</div>
+                </div>
+                <div class="reservation-item">
+                    <div class="reservation-label">Catégorie</div>
+                    <div class="reservation-value">{{ room_type.name }}</div>
+                </div>
+                <div class="reservation-item">
+                    <div class="reservation-label">Arrivée</div>
+                    <div class="reservation-value">{{ reservation.check_in_date.strftime('%d/%m/%Y') }}</div>
+                </div>
+                <div class="reservation-item">
+                    <div class="reservation-label">Départ</div>
+                    <div class="reservation-value">{{ reservation.check_out_date.strftime('%d/%m/%Y') }}</div>
+                </div>
+                <div class="reservation-item">
+                    <div class="reservation-label">Nuits</div>
+                    <div class="reservation-value">{{ invoice.nights_count }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Items Table -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th class="text-center">Nuits</th>
+                    <th class="text-right">Prix/nuit HT</th>
+                    <th class="text-right">Montant HT</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Hébergement {{ room_type.name }} - Ch. {{ room.number }}</td>
+                    <td class="text-center">{{ invoice.nights_count }}</td>
+                    <td class="text-right">{{ "{:.2f}".format(invoice.room_rate or 0) }} €</td>
+                    <td class="text-right">{{ "{:.2f}".format(invoice.total_amount or 0) }} €</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- Totals -->
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td class="total-label">Total HT :</td>
+                    <td class="total-value">{{ "{:.2f}".format(invoice.total_amount or 0) }} €</td>
+                </tr>
+                <tr>
+                    <td class="total-label">TVA {{ "{:.0f}".format(invoice.tva_rate or 0) }}% :</td>
+                    <td class="total-value">{{ "{:.2f}".format(invoice.tva_amount or 0) }} €</td>
+                </tr>
+                <tr class="final-total">
+                    <td class="total-label">Total TTC :</td>
+                    <td class="total-value">{{ "{:.2f}".format(invoice.total_ttc or 0) }} €</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="clearfix"></div>
+        
+        <!-- Payment Status -->
+        <div class="payment-section">
+            <div class="payment-title">STATUT DU PAIEMENT</div>
+            {% if invoice.payment_status == 'paid' %}
+                <div class="payment-status paid">
+                    ✓ Facture payée le {{ invoice.paid_at.strftime('%d/%m/%Y à %H:%M') }}
+                    {% if invoice.payment_method %}
+                        par {{ 
+                            'Espèces' if invoice.payment_method == 'cash' else
+                            'Carte bancaire' if invoice.payment_method == 'card' else
+                            'Virement bancaire' if invoice.payment_method == 'virement' else
+                            invoice.payment_method
+                        }}
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="payment-status pending">
+                    ⏳ Paiement en attente
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Merci de votre confiance et à bientôt !</p>
+            <p>{{ hotel_name }} - {{ hotel_email }} - {{ hotel_phone }}</p>
+            {% if invoice.notes %}
+                <p style="margin-top: 10px; font-style: italic;">Note : {{ invoice.notes }}</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

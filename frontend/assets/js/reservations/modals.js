@@ -5,17 +5,19 @@
 function openCreateReservationModal() {
     const modal = document.getElementById('createReservationModal');
     
-    // Reset form
     document.getElementById('createReservationForm').reset();
     document.getElementById('selectedClientId').value = '';
     document.querySelectorAll('.field-error').forEach(el => el.remove());
     
-    // Reset sections
     document.getElementById('newClientSection').style.display = 'block';
     document.getElementById('existingClientSection').style.display = 'none';
     document.querySelector('input[name="clientType"][value="new"]').checked = true;
     
-    // Hide status divs
+    // Re-enable required on new client fields after reset
+    ['newClientFirstName', 'newClientLastName'].forEach(id => {
+        document.getElementById(id).required = true;
+    });
+
     ['availabilityStatus', 'paxValidation', 'priceEstimate'].forEach(id => {
         document.getElementById(id).style.display = 'none';
     });

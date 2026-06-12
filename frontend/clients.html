@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Clients</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        .clients-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: var(--space-4);
+            align-items: end;
+        }
+
+        .clients-table-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .detail-group {
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+        }
+
+        .detail-label {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: var(--space-1);
+        }
+
+        .detail-value {
+            font-size: var(--text-base);
+            color: var(--text);
+        }
+
+        .reservations-section {
+            grid-column: 1 / -1;
+            margin-top: var(--space-4);
+        }
+
+        .reservations-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .reservation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .reservation-item:last-child {
+            border-bottom: none;
+        }
+
+        .reservation-info {
+            flex: 1;
+        }
+
+        .reservation-dates {
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-8);
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            width: 48px;
+            height: 48px;
+            margin-bottom: var(--space-4);
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .filters-row {
+                grid-template-columns: 1fr;
+                gap: var(--space-3);
+            }
+
+            .clients-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+            
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./planning.html" class="nav-link">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./reservations.html" class="nav-link">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./clients.html" class="nav-link active">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./invoices.html" class="nav-link">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./settings.html" class="nav-link">
+                            <i data-lucide="settings" class="nav-icon"></i>
+                            Paramètres
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Clients</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Fichier clients et historique de séjour</p>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Section -->
+            <div class="clients-stats">
+                <div class="kpi-card" id="totalClientsCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="clientsWithEmailCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="clientsWithPhoneCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="clientsThisMonthCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <div class="filters-row">
+                    <div class="form-group">
+                        <label for="searchInput" class="form-label">Rechercher</label>
+                        <input type="text" id="searchInput" class="form-input" placeholder="Nom, prénom, email ou téléphone...">
+                    </div>
+                    <div class="form-group">
+                        <label for="nationalityFilter" class="form-label">Nationalité</label>
+                        <select id="nationalityFilter" class="form-input">
+                            <option value="">Toutes</option>
+                            <!-- Options populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: end;">
+                        <button class="btn btn-primary" id="newClientBtn">
+                            <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            Nouveau client
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clients Table -->
+            <div class="clients-table-container">
+                <table class="table" id="clientsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Nationalité</th>
+                            <th>Dernier séjour</th>
+                            <th>Réservations</th>
+                            <th>Créé le</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Skeleton loading state -->
+                        <tr>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Client Detail Modal -->
+    <div class="modal-overlay" id="detailClientModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="detailModalTitle">Détail du client</h2>
+                <button class="modal-close" id="detailModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="detail-grid" id="detailGrid">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Client Modal -->
+    <div class="modal-overlay" id="createClientModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Nouveau client</h2>
+                <button class="modal-close" id="createModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form id="createClientForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="createFirstName" class="form-label">Prénom *</label>
+                            <input type="text" id="createFirstName" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="createLastName" class="form-label">Nom *</label>
+                            <input type="text" id="createLastName" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="createEmail" class="form-label">Email</label>
+                            <input type="email" id="createEmail" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="createPhone" class="form-label">Téléphone</label>
+                            <input type="tel" id="createPhone" class="form-input">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="createNationality" class="form-label">Nationalité</label>
+                            <input type="text" id="createNationality" class="form-input">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                        <button type="button" class="btn btn-ghost" onclick="closeCreateClientModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Créer le client</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Client Modal -->
+    <div class="modal-overlay" id="editClientModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Modifier le client</h2>
+                <button class="modal-close" id="editModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form id="editClientForm">
+                    <input type="hidden" id="editClientId">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editFirstName" class="form-label">Prénom *</label>
+                            <input type="text" id="editFirstName" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editLastName" class="form-label">Nom *</label>
+                            <input type="text" id="editLastName" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmail" class="form-label">Email</label>
+                            <input type="email" id="editEmail" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="editPhone" class="form-label">Téléphone</label>
+                            <input type="tel" id="editPhone" class="form-input">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="editNationality" class="form-label">Nationalité</label>
+                            <input type="text" id="editNationality" class="form-input">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                        <button type="button" class="btn btn-ghost" onclick="closeEditClientModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Sauvegarder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteClientModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Confirmer la suppression</h2>
+                <button class="modal-close" id="deleteModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <p>Êtes-vous sûr de vouloir supprimer ce client ?</p>
+                <p id="deleteClientName" style="font-weight: 600; margin: var(--space-2) 0;"></p>
+                <p style="color: var(--text-muted); font-size: var(--text-sm);">Cette action ne peut pas être annulée.</p>
+                <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                    <button type="button" class="btn btn-ghost" onclick="closeDeleteClientModal()">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script src="./assets/api/auth.js"></script>
+    <script src="./assets/api/rooms.js"></script>
+    <script src="./assets/api/clients.js"></script>
+    <script src="./assets/api/reservations.js"></script>
+    <script src="./assets/api/index.js"></script>
+    <script src="./assets/js/clients/state.js"></script>
+    <script src="./assets/js/clients/utils.js"></script>
+    <script src="./assets/js/clients/render.js"></script>
+    <script src="./assets/js/clients/modals.js"></script>
+    <script src="./assets/js/clients/handlers.js"></script>
+    <script src="./assets/js/clients/init.js"></script>
+</body>
+</html>

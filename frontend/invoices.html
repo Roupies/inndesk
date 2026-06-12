@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Factures</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        .invoices-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .filters-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: var(--space-4);
+            align-items: end;
+        }
+
+        .invoices-table-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .invoice-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .detail-group {
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+        }
+
+        .detail-label {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: var(--space-1);
+        }
+
+        .detail-value {
+            font-size: var(--text-base);
+            color: var(--text);
+        }
+
+        .amount-highlight {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .generate-preview {
+            background: var(--bg);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .generate-preview-title {
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        .generate-preview-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--space-2);
+            font-size: var(--text-sm);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-8);
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            width: 48px;
+            height: 48px;
+            margin-bottom: var(--space-4);
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .filters-row {
+                grid-template-columns: 1fr;
+                gap: var(--space-3);
+            }
+
+            .invoices-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .invoice-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+            
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./planning.html" class="nav-link">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./reservations.html" class="nav-link">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./clients.html" class="nav-link">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./invoices.html" class="nav-link active">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./settings.html" class="nav-link">
+                            <i data-lucide="settings" class="nav-icon"></i>
+                            Paramètres
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Factures</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Facturation et paiements</p>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Section -->
+            <div class="invoices-stats">
+                <div class="kpi-card" id="totalInvoicesCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="paidAmountCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="pendingCountCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+                <div class="kpi-card" id="recoveryRateCard">
+                    <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                    <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <div class="filters-row">
+                    <div class="form-group">
+                        <label for="searchInput" class="form-label">Rechercher</label>
+                        <input type="text" id="searchInput" class="form-input" placeholder="Client, N° facture...">
+                    </div>
+                    <div class="form-group">
+                        <label for="statusFilter" class="form-label">Statut</label>
+                        <select id="statusFilter" class="form-input">
+                            <option value="">Tous</option>
+                            <option value="pending">En attente</option>
+                            <option value="paid">Payées</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: end;">
+                        <button class="btn btn-primary" id="generateInvoiceBtn">
+                            <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            Générer une facture
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices Table -->
+            <div class="invoices-table-container">
+                <table class="table" id="invoicesTable">
+                    <thead>
+                        <tr>
+                            <th># Facture</th>
+                            <th>Client</th>
+                            <th>Chambre</th>
+                            <th>Dates séjour</th>
+                            <th>Montant HT</th>
+                            <th>TVA</th>
+                            <th>Total TTC</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Skeleton loading state -->
+                        <tr>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                            <td><div class="skeleton skeleton-text"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Generate Invoice Modal -->
+    <div class="modal-overlay" id="generateInvoiceModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Générer une facture</h2>
+                <button class="modal-close" id="generateModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form id="generateInvoiceForm">
+                    <div class="form-group">
+                        <label for="reservationSelect" class="form-label">Réservation à facturer *</label>
+                        <select id="reservationSelect" class="form-input" required>
+                            <option value="">Sélectionnez une réservation...</option>
+                        </select>
+                    </div>
+                    
+                    <div id="reservationPreview" class="generate-preview" style="display: none;">
+                        <div class="generate-preview-title">Aperçu de la facture</div>
+                        <div class="generate-preview-content">
+                            <div><strong>Client:</strong> <span id="previewClient"></span></div>
+                            <div><strong>Chambre:</strong> <span id="previewRoom"></span></div>
+                            <div><strong>Nuits:</strong> <span id="previewNights"></span></div>
+                            <div><strong>Montant estimé:</strong> <span id="previewAmount"></span></div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                        <button type="button" class="btn btn-ghost" onclick="closeGenerateInvoiceModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Générer la facture</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Detail Modal -->
+    <div class="modal-overlay" id="invoiceDetailModal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2 class="modal-title" id="detailModalTitle">Détail de la facture</h2>
+                <button class="modal-close" id="detailModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="detail-grid" id="invoiceDetailGrid">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                    <button type="button" class="btn btn-primary" id="downloadPdfBtn">
+                        <i data-lucide="download" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                        Télécharger PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Email Modal -->
+    <div class="modal-overlay" id="sendEmailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Envoyer la facture par email</h2>
+                <button class="modal-close" id="emailModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form id="sendEmailForm">
+                    <div id="resendWarning" style="display: none; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 14px; color: #92400e;">
+                        ⚠️ En mode test Resend, l'email sera envoyé à votre adresse personnelle uniquement. Vérifiez un domaine sur resend.com pour envoyer aux clients.
+                    </div>
+                    <div class="form-group">
+                        <label for="emailInput" class="form-label">Email destinataire *</label>
+                        <input type="email" id="emailInput" class="form-input" required>
+                    </div>
+                    
+                    <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                        <button type="button" class="btn btn-ghost" onclick="closeSendEmailModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Envoyer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Status Modal -->
+    <div class="modal-overlay" id="paymentStatusModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Modifier le statut de paiement</h2>
+                <button class="modal-close" id="paymentModalCloseBtn" type="button">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <form id="paymentStatusForm">
+                    <div class="form-group">
+                        <label for="paymentStatusSelect" class="form-label">Statut *</label>
+                        <select id="paymentStatusSelect" class="form-input" required>
+                            <option value="pending">En attente</option>
+                            <option value="paid">Payée</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="paymentMethodGroup" style="display: none;">
+                        <label for="paymentMethodSelect" class="form-label">Méthode de paiement</label>
+                        <select id="paymentMethodSelect" class="form-input">
+                            <option value="cash">Espèces</option>
+                            <option value="card">Carte bancaire</option>
+                            <option value="virement">Virement bancaire</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="paymentNotes" class="form-label">Notes</label>
+                        <textarea id="paymentNotes" class="form-input" rows="3"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                        <button type="button" class="btn btn-ghost" onclick="closePaymentStatusModal()">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Sauvegarder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script src="./assets/api/auth.js"></script>
+    <script src="./assets/api/rooms.js"></script>
+    <script src="./assets/api/clients.js"></script>
+    <script src="./assets/api/reservations.js"></script>
+    <script src="./assets/api/invoices.js"></script>
+    <script src="./assets/api/index.js"></script>
+    <script src="./assets/js/invoices/state.js"></script>
+    <script src="./assets/js/invoices/utils.js"></script>
+    <script src="./assets/js/invoices/render.js"></script>
+    <script src="./assets/js/invoices/modals.js"></script>
+    <script src="./assets/js/invoices/handlers.js"></script>
+    <script src="./assets/js/invoices/init.js"></script>
+</body>
+</html>
