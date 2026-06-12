@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -26,11 +27,12 @@ def find_available_room(
     Find the first available room of the given type for the date range.
     Returns a Room object, or None if no room is available.
     Overlap condition: existing.check_in < new_check_out AND existing.check_out > new_check_in
+    Uses SELECT FOR UPDATE to prevent race conditions.
     """
     rooms = db.query(Room).filter(
         Room.room_type_id == room_type_id,
         Room.status == "available"
-    ).all()
+    ).with_for_update(skip_locked=True).all()
 
     for room in rooms:
         query = db.query(Reservation).filter(
@@ -41,7 +43,7 @@ def find_available_room(
         )
         if exclude_reservation_id:
             query = query.filter(Reservation.id != exclude_reservation_id)
-        if query.first() is None:
+        if query.count() == 0:
             return room
     return None
 
@@ -164,6 +166,14 @@ def create_reservation(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cette chambre ne correspond pas à la catégorie réservée"
+            )
+        
+        # Lock the room to prevent race conditions
+        locked_room = db.query(Room).filter(Room.id == assigned_room_id).with_for_update(skip_locked=True).first()
+        if locked_room is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Cette chambre est en cours de réservation"
             )
         
         # Check availability for this specific room
@@ -373,6 +383,9 @@ def update_reservation(
         reservation.status = reservation_data.status
     if reservation_data.notes is not None:
         reservation.notes = reservation_data.notes
+    
+    # Fix updated_at timestamp - onupdate=func.now() doesn't work with attribute assignment
+    reservation.updated_at = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(reservation)

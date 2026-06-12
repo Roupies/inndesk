@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
@@ -15,6 +16,10 @@ class UserCreate(BaseModel):
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
+        if not re.search(r'\d', v):
+            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
         return v
 
 
@@ -38,6 +43,10 @@ class UserResetPassword(BaseModel):
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
+        if not re.search(r'\d', v):
+            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
         return v
 
 
@@ -51,6 +60,10 @@ class PasswordChangeRequest(BaseModel):
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
+        if not re.search(r'\d', v):
+            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
         return v
 
     @field_validator('confirm_password')

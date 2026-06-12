@@ -1,45 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from backend.core.database import get_db
-from backend.core.security import create_access_token, hash_password, verify_password, require_admin
+from backend.core.security import create_access_token, hash_password, verify_password
 from backend.models.user import User
 from backend.schemas.auth import LoginRequest, TokenResponse
-from backend.schemas.user import UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
-
-
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
-def register(
-    user_data: UserCreate, 
-    db: Session = Depends(get_db)
-):
-    # Note: seed.py uses direct DB insertion, not this endpoint — no impact.
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Un utilisateur avec cet email existe déjà"
-        )
-    
-    hashed_password = hash_password(user_data.password)
-    user = User(
-        email=user_data.email,
-        password_hash=hashed_password,
-        full_name=user_data.full_name,
-        role=user_data.role
-    )
-    
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    
-    return user
+limiter = Limiter(key_func=get_remote_address)
+_TESTING = os.getenv("TESTING", "false").lower() == "true"
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+def login(login_data: LoginRequest, db: Session = Depends(get_db), request: Request = None):
     user = db.query(User).filter(User.email == login_data.email).first()
     
     if not user or not verify_password(login_data.password, user.password_hash):
@@ -57,3 +33,8 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
     
     return TokenResponse(access_token=access_token)
+
+
+# Only apply rate limit decorator in production
+if not _TESTING:
+    login = limiter.limit("5/minute")(login)

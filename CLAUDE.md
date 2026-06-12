@@ -461,7 +461,7 @@ require_admin       # valid JWT + role == "admin" — raises 403 otherwise
 ```
 
 ### Admin-only routes
-POST /auth/register, POST+DELETE /rooms, POST /room-types,
+POST /users/, POST+DELETE /rooms, POST /room-types,
 PATCH /housekeeping/{id} for maintenance status, DELETE /clients/{id}
 
 ### Datetime rules
@@ -510,8 +510,8 @@ check_out_date: date
 ```
 # Auth
 POST  /api/v1/auth/login           {email, password} → {access_token, token_type, user}
-POST  /api/v1/auth/register        [admin] → UserResponse
-GET   /api/v1/auth/me              → UserResponse
+GET   /api/v1/users/me             → UserResponse
+POST  /api/v1/users/               [admin] → UserResponse
 
 # Rooms
 GET   /api/v1/rooms                → list[RoomResponse]

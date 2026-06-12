@@ -1,3 +1,6 @@
+import os
+os.environ["TESTING"] = "true"  # Must be BEFORE any backend imports
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

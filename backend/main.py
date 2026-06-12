@@ -2,15 +2,28 @@ from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import create_engine
 from sqlalchemy.schema import CreateTable
 from sqlalchemy.dialects import postgresql as pg_dialect
 
 from backend.core.database import Base, engine
 from backend.models import User, RoomType, Room, Client, Reservation, Invoice, HotelSetting
+
+# Rate limiter setup
+limiter = Limiter(key_func=get_remote_address)
+
+def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Trop de tentatives de connexion. Veuillez réessayer dans quelques instants."}
+    )
 
 
 @asynccontextmanager
@@ -41,6 +54,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Configure rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 # Register routers
 from backend.routers import auth, users, room_types, rooms, clients, reservations, invoices, settings, housekeeping
