@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from datetime import time
 
 
@@ -17,13 +17,15 @@ class HotelSettingsBase(BaseModel):
     check_out_time: str = "11:00"
     currency: str = "EUR"
 
-    @validator('tva_rate')
+    @field_validator('tva_rate')
+    @classmethod
     def validate_tva_rate(cls, v):
         if v < 0 or v > 100:
             raise ValueError('Le taux de TVA doit être entre 0 et 100')
         return v
 
-    @validator('check_in_time', 'check_out_time')
+    @field_validator('check_in_time', 'check_out_time')
+    @classmethod
     def validate_time_format(cls, v):
         try:
             time.fromisoformat(v)
@@ -45,13 +47,15 @@ class PasswordChangeRequest(BaseModel):
     new_password: str
     confirm_password: str
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
         return v
 
-    @validator('confirm_password')
+    @field_validator('confirm_password')
+    @classmethod
     def passwords_match(cls, v, values):
         if 'new_password' in values and v != values['new_password']:
             raise ValueError('Les mots de passe ne correspondent pas')
@@ -70,13 +74,15 @@ class UserCreate(BaseModel):
     role: str = "receptionist"
     is_active: bool = True
 
-    @validator('role')
+    @field_validator('role')
+    @classmethod
     def validate_role(cls, v):
         if v not in ['admin', 'receptionist']:
             raise ValueError('Le rôle doit être admin ou receptionist')
         return v
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
@@ -89,7 +95,8 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
 
-    @validator('role')
+    @field_validator('role')
+    @classmethod
     def validate_role(cls, v):
         if v is not None and v not in ['admin', 'receptionist']:
             raise ValueError('Le rôle doit être admin ou receptionist')
@@ -99,7 +106,8 @@ class UserUpdate(BaseModel):
 class UserResetPassword(BaseModel):
     new_password: str
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, EmailStr, ConfigDict, validator
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 
 
 class UserCreate(BaseModel):
@@ -10,7 +10,8 @@ class UserCreate(BaseModel):
     role: Literal["admin", "receptionist"] = "receptionist"
     is_active: bool = True
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
@@ -32,7 +33,8 @@ class UserProfileUpdate(BaseModel):
 class UserResetPassword(BaseModel):
     new_password: str
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
@@ -44,13 +46,15 @@ class PasswordChangeRequest(BaseModel):
     new_password: str
     confirm_password: str
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
         return v
 
-    @validator('confirm_password')
+    @field_validator('confirm_password')
+    @classmethod
     def passwords_match(cls, v, values):
         if 'new_password' in values and v != values['new_password']:
             raise ValueError('Les mots de passe ne correspondent pas')
