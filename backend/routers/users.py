@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from passlib.context import CryptContext
 
 from backend.core.database import get_db
 from backend.core.security import get_current_user, require_admin, hash_password, verify_password

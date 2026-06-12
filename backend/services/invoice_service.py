@@ -55,8 +55,8 @@ def generate_invoice_pdf(invoice_id: int, db: Session) -> tuple[bytes, str]:
             db.query(Invoice)
             .join(Reservation)
             .join(Client)
-            .join(Room)
-            .join(RoomType)
+            .outerjoin(Room, Reservation.room_id == Room.id)
+            .outerjoin(RoomType, Room.room_type_id == RoomType.id)
             .options(
                 joinedload(Invoice.reservation).joinedload(Reservation.client),
                 joinedload(Invoice.reservation).joinedload(Reservation.room).joinedload(Room.room_type)
@@ -87,12 +87,14 @@ def generate_invoice_pdf(invoice_id: int, db: Session) -> tuple[bytes, str]:
             hotel_full_address.append(" ".join(city_line))
         
         # Prepare template data
+        room = invoice.reservation.room if invoice.reservation else None
+        room_type = room.room_type if room else None
         template_data = {
             "invoice": invoice,
             "reservation": invoice.reservation,
             "client": invoice.reservation.client,
-            "room": invoice.reservation.room,
-            "room_type": invoice.reservation.room.room_type,
+            "room": room,
+            "room_type": room_type,
             "hotel_name": hotel_settings["hotel_name"],
             "hotel_address": "\n".join(hotel_full_address),
             "hotel_siret": hotel_settings["hotel_siret"],

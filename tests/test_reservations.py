@@ -344,7 +344,7 @@ def test_filter_by_status(client, admin_token, reception_token, auth_headers):
     client.post("/api/v1/reservations/", json=reservation2_data, headers=reception_headers)
     
     # Filter by confirmed status
-    response = client.get("/api/v1/reservations/?status=confirmed", headers=reception_headers)
+    response = client.get("/api/v1/reservations/?reservation_status=confirmed", headers=reception_headers)
     
     assert response.status_code == 200
     data = response.json()

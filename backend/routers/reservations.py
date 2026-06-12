@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from backend.core.database import get_db
 from backend.core.security import get_current_user
 from backend.models.client import Client
+from backend.models.invoice import Invoice
 from backend.models.reservation import Reservation
 from backend.models.room import Room
 from backend.models.room_type import RoomType
@@ -50,11 +51,13 @@ def find_available_room(
 
 @router.get("/", response_model=list[ReservationDetailResponse])
 def get_reservations(
-    status: str | None = Query(None),
+    reservation_status: str | None = Query(default=None),
     room_id: int | None = Query(None),
     client_id: int | None = Query(None),
     start: str | None = Query(None),
     end: str | None = Query(None),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -64,8 +67,8 @@ def get_reservations(
         joinedload(Reservation.room)
     )
     
-    if status:
-        query = query.filter(Reservation.status == status)
+    if reservation_status:
+        query = query.filter(Reservation.status == reservation_status)
     if room_id:
         query = query.filter(Reservation.room_id == room_id)
     if client_id:
@@ -75,7 +78,7 @@ def get_reservations(
     if end:
         query = query.filter(Reservation.check_out_date <= end)
     
-    reservations = query.all()
+    reservations = query.offset(offset).limit(limit).all()
     return reservations
 
 
@@ -404,6 +407,15 @@ def delete_reservation(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Réservation non trouvée"
+        )
+    
+    existing_invoice = db.query(Invoice).filter(
+        Invoice.reservation_id == reservation_id
+    ).first()
+    if existing_invoice:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Impossible de supprimer une réservation avec une facture associée. Annulez d'abord la facture."
         )
     
     db.delete(reservation)
