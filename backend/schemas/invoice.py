@@ -49,6 +49,13 @@ class SendInvoiceEmailRequest(BaseModel):
     email: str
 
 
+class InvoiceListResponse(BaseModel):
+    items: list[InvoiceWithReservationResponse]
+    total: int
+    limit: int
+    offset: int
+
+
 class InvoiceStatsResponse(BaseModel):
     total_invoices: int
     total_paid_amount: Decimal

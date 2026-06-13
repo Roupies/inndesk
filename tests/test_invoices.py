@@ -476,3 +476,232 @@ def test_delete_invoice_receptionist(client, admin_token, reception_token, auth_
     response = client.delete(f"/api/v1/invoices/{invoice['id']}", headers=reception_headers)
     
     assert response.status_code == 403
+
+
+def test_invoices_list_has_total_count(client, admin_token, reception_token, auth_headers):
+    """Test that GET /invoices/ returns paginated response with total, items, limit, offset"""
+    admin_headers = auth_headers(admin_token)
+    reception_headers = auth_headers(reception_token)
+    
+    # Create minimal test data (room type, room, client, reservation, invoice)
+    room_type_data = {
+        "name": "Count Type",
+        "description": "Test room type",
+        "price_per_night": "100.00",
+        "max_occupancy": 2
+    }
+    
+    room_type_response = client.post("/api/v1/room-types/", json=room_type_data, headers=admin_headers)
+    room_type = room_type_response.json()
+    
+    room_data = {
+        "number": "COUNT01",
+        "floor": 1,
+        "room_type_id": room_type["id"],
+        "status": "available"
+    }
+    
+    room_response = client.post("/api/v1/rooms/", json=room_data, headers=admin_headers)
+    room = room_response.json()
+    
+    client_data = {
+        "first_name": "Count",
+        "last_name": "Test",
+        "email": "count.test@test.com",
+    }
+    
+    client_response = client.post("/api/v1/clients/", json=client_data, headers=reception_headers)
+    test_client = client_response.json()
+    
+    # Create reservation
+    today = date.today()
+    reservation_data = {
+        "client_id": test_client["id"],
+        "room_id": room["id"],
+        "check_in_date": str(today + timedelta(days=1)),
+        "check_out_date": str(today + timedelta(days=3)),
+        "adults": 1,
+        "children": 0,
+        "total_amount": "200.00",
+        "status": "confirmed"
+    }
+    
+    reservation_response = client.post("/api/v1/reservations/", json=reservation_data, headers=reception_headers)
+    reservation = reservation_response.json()
+    
+    # Change reservation status to checked_out
+    checkout_response = client.patch(f"/api/v1/reservations/{reservation['id']}", 
+                                   json={"status": "checked_out"}, 
+                                   headers=reception_headers)
+    assert checkout_response.status_code == 200
+    
+    # Create invoice
+    invoice_data = {
+        "reservation_id": reservation["id"],
+        "payment_status": "pending"
+    }
+    
+    invoice_response = client.post("/api/v1/invoices/", json=invoice_data, headers=reception_headers)
+    assert invoice_response.status_code == 201
+    
+    # Test GET /invoices/ response format
+    response = client.get("/api/v1/invoices/", headers=reception_headers)
+    
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Check that response has all required pagination fields
+    assert "items" in data
+    assert "total" in data
+    assert "limit" in data
+    assert "offset" in data
+    
+    # Check data types
+    assert isinstance(data["items"], list)
+    assert isinstance(data["total"], int)
+    assert isinstance(data["limit"], int)
+    assert isinstance(data["offset"], int)
+    
+    # Check that total is at least 1 (our created invoice)
+    assert data["total"] >= 1
+    assert len(data["items"]) >= 1
+    assert data["limit"] == 50  # Default limit
+    assert data["offset"] == 0  # Default offset
+
+
+def test_invoices_total_with_filter(client, admin_token, reception_token, auth_headers):
+    """Test that total count changes correctly with payment_status filter"""
+    admin_headers = auth_headers(admin_token)
+    reception_headers = auth_headers(reception_token)
+    
+    # Create minimal test data for two invoices with different statuses
+    room_type_data = {
+        "name": "Filter Type",
+        "description": "Test room type",
+        "price_per_night": "100.00",
+        "max_occupancy": 2
+    }
+    
+    room_type_response = client.post("/api/v1/room-types/", json=room_type_data, headers=admin_headers)
+    room_type = room_type_response.json()
+    
+    # Create two rooms
+    room_data_1 = {
+        "number": "FILTER01",
+        "floor": 1,
+        "room_type_id": room_type["id"],
+        "status": "available"
+    }
+    
+    room_data_2 = {
+        "number": "FILTER02",
+        "floor": 1,
+        "room_type_id": room_type["id"],
+        "status": "available"
+    }
+    
+    room_response_1 = client.post("/api/v1/rooms/", json=room_data_1, headers=admin_headers)
+    room_1 = room_response_1.json()
+    
+    room_response_2 = client.post("/api/v1/rooms/", json=room_data_2, headers=admin_headers)
+    room_2 = room_response_2.json()
+    
+    # Create two clients
+    client_data_1 = {
+        "first_name": "Pending",
+        "last_name": "Client",
+        "email": "pending.client@test.com",
+    }
+    
+    client_data_2 = {
+        "first_name": "Paid",
+        "last_name": "Client",
+        "email": "paid.client@test.com",
+    }
+    
+    client_response_1 = client.post("/api/v1/clients/", json=client_data_1, headers=reception_headers)
+    test_client_1 = client_response_1.json()
+    
+    client_response_2 = client.post("/api/v1/clients/", json=client_data_2, headers=reception_headers)
+    test_client_2 = client_response_2.json()
+    
+    # Create two reservations
+    today = date.today()
+    reservation_data_1 = {
+        "client_id": test_client_1["id"],
+        "room_id": room_1["id"],
+        "check_in_date": str(today + timedelta(days=1)),
+        "check_out_date": str(today + timedelta(days=3)),
+        "adults": 1,
+        "children": 0,
+        "total_amount": "200.00",
+        "status": "confirmed"
+    }
+    
+    reservation_data_2 = {
+        "client_id": test_client_2["id"],
+        "room_id": room_2["id"],
+        "check_in_date": str(today + timedelta(days=4)),
+        "check_out_date": str(today + timedelta(days=6)),
+        "adults": 1,
+        "children": 0,
+        "total_amount": "200.00",
+        "status": "confirmed"
+    }
+    
+    reservation_response_1 = client.post("/api/v1/reservations/", json=reservation_data_1, headers=reception_headers)
+    reservation_1 = reservation_response_1.json()
+    
+    reservation_response_2 = client.post("/api/v1/reservations/", json=reservation_data_2, headers=reception_headers)
+    reservation_2 = reservation_response_2.json()
+    
+    # Check out both reservations
+    client.patch(f"/api/v1/reservations/{reservation_1['id']}", 
+                json={"status": "checked_out"}, 
+                headers=reception_headers)
+    
+    client.patch(f"/api/v1/reservations/{reservation_2['id']}", 
+                json={"status": "checked_out"}, 
+                headers=reception_headers)
+    
+    # Create one pending invoice
+    invoice_data_1 = {
+        "reservation_id": reservation_1["id"],
+        "payment_status": "pending"
+    }
+    
+    client.post("/api/v1/invoices/", json=invoice_data_1, headers=reception_headers)
+    
+    # Create one paid invoice
+    invoice_data_2 = {
+        "reservation_id": reservation_2["id"],
+        "payment_status": "paid"
+    }
+    
+    client.post("/api/v1/invoices/", json=invoice_data_2, headers=reception_headers)
+    
+    # Test filter: all invoices (no filter)
+    response_all = client.get("/api/v1/invoices/", headers=reception_headers)
+    assert response_all.status_code == 200
+    data_all = response_all.json()
+    total_all = data_all["total"]
+    
+    # Test filter: pending only
+    response_pending = client.get("/api/v1/invoices/?payment_status=pending", headers=reception_headers)
+    assert response_pending.status_code == 200
+    data_pending = response_pending.json()
+    total_pending = data_pending["total"]
+    
+    # Test filter: paid only
+    response_paid = client.get("/api/v1/invoices/?payment_status=paid", headers=reception_headers)
+    assert response_paid.status_code == 200
+    data_paid = response_paid.json()
+    total_paid = data_paid["total"]
+    
+    # Verify that filtered totals are less than or equal to total all
+    assert total_pending <= total_all
+    assert total_paid <= total_all
+    
+    # Verify that at least one pending and one paid invoice exist
+    assert total_pending >= 1
+    assert total_paid >= 1

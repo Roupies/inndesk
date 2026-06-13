@@ -15,14 +15,14 @@ async function loadData() {
         document.getElementById('userRole').textContent = currentUser?.role || '';
 
         // Load stats, invoices and available reservations in parallel
-        const [statsData, invoicesData, reservationsData] = await Promise.all([
+        const [statsData, invoicesResponse, reservationsData] = await Promise.all([
             InnDesk.api.invoices.getStats(),
             InnDesk.api.invoices.getAll(currentFilters),
             InnDesk.api.invoices.getAvailableReservations()
         ]);
         
         stats = statsData;
-        invoices = invoicesData;
+        invoices = invoicesResponse.items || invoicesResponse; // Handle both old and new format
         availableReservations = reservationsData;
         
         // Render everything

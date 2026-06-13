@@ -27,6 +27,7 @@ from backend.schemas.invoice import (
     InvoiceResponse,
     InvoiceUpdate,
     InvoiceWithReservationResponse,
+    InvoiceListResponse,
     InvoiceStatsResponse,
     SendInvoiceEmailRequest
 )
@@ -64,7 +65,7 @@ def get_invoice_stats(
     )
 
 
-@router.get("/", response_model=list[InvoiceWithReservationResponse])
+@router.get("/", response_model=InvoiceListResponse)
 def get_invoices(
     payment_status: str | None = None,
     search: str | None = None,
@@ -74,12 +75,33 @@ def get_invoices(
     db: Session = Depends(get_db)
 ):
     """Get all invoices with reservation details"""
-    query = (
+    # Base query for filtering
+    base_query = (
         db.query(Invoice)
         .join(Reservation)
         .join(Client)
         .outerjoin(Room)
         .outerjoin(RoomType)
+    )
+    
+    # Apply filters to base query
+    if payment_status and payment_status.strip():
+        base_query = base_query.filter(Invoice.payment_status == payment_status)
+    
+    if search and search.strip():
+        search_pattern = f"%{search}%"
+        base_query = base_query.filter(
+            (Client.first_name.ilike(search_pattern)) |
+            (Client.last_name.ilike(search_pattern)) |
+            (Invoice.id.cast(String).ilike(search_pattern))
+        )
+    
+    # Count total with same filters (without limit/offset)
+    total_count = base_query.count()
+    
+    # Get paginated results with joins for related data
+    invoices = (
+        base_query
         .options(
             joinedload(Invoice.reservation)
             .joinedload(Reservation.client),
@@ -87,23 +109,14 @@ def get_invoices(
             .joinedload(Reservation.room)
             .joinedload(Room.room_type)
         )
+        .order_by(Invoice.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
     )
     
-    if payment_status and payment_status.strip():
-        query = query.filter(Invoice.payment_status == payment_status)
-    
-    if search and search.strip():
-        search_pattern = f"%{search}%"
-        query = query.filter(
-            (Client.first_name.ilike(search_pattern)) |
-            (Client.last_name.ilike(search_pattern)) |
-            (Invoice.id.cast(String).ilike(search_pattern))
-        )
-    
-    invoices = query.order_by(Invoice.created_at.desc()).offset(offset).limit(limit).all()
-    
     # Transform to response format with joined data
-    response = []
+    items = []
     for invoice in invoices:
         invoice_data = InvoiceWithReservationResponse(
             **invoice.__dict__,
@@ -114,9 +127,14 @@ def get_invoices(
             check_in_date=invoice.reservation.check_in_date,
             check_out_date=invoice.reservation.check_out_date
         )
-        response.append(invoice_data)
+        items.append(invoice_data)
     
-    return response
+    return InvoiceListResponse(
+        items=items,
+        total=total_count,
+        limit=limit,
+        offset=offset
+    )
 
 
 @router.get("/available-reservations")
