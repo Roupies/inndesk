@@ -21,8 +21,40 @@ async function apiFetch(path, options = {}) {
     try {
         const response = await fetch(`${API_BASE}${path}`, config);
         
-        // Handle authentication errors
-        if (response.status === 401) {
+        // Handle authentication errors with refresh attempt
+        if (response.status === 401 && token && path !== '/auth/refresh') {
+            try {
+                // Attempt to refresh the token
+                const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (refreshResponse.ok) {
+                    // Refresh succeeded - save new token and retry original request
+                    const refreshData = await refreshResponse.json();
+                    setToken(refreshData.access_token);
+                    
+                    // Update config with new token and retry
+                    config.headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+                    return await apiFetch(path, options);
+                } else {
+                    // Refresh failed - logout user
+                    clearToken();
+                    window.location.href = '/app/index.html';
+                    return;
+                }
+            } catch (refreshError) {
+                // Refresh request failed - logout user
+                clearToken();
+                window.location.href = '/app/index.html';
+                return;
+            }
+        } else if (response.status === 401) {
+            // 401 on refresh endpoint or no token - logout user
             clearToken();
             window.location.href = '/app/index.html';
             return;

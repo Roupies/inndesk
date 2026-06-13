@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from backend.core.database import get_db
 from backend.core.security import get_current_user
+from backend.services.reservation_service import find_available_room
 from backend.models.client import Client
 from backend.models.invoice import Invoice
 from backend.models.reservation import Reservation
@@ -15,38 +16,6 @@ from backend.models.user import User
 from backend.schemas.reservation import AssignRoomRequest, ReservationCreate, ReservationDetailResponse, ReservationResponse, ReservationUpdate
 
 router = APIRouter(prefix="/reservations", tags=["Reservations"])
-
-
-def find_available_room(
-    db: Session,
-    room_type_id: int,
-    check_in_date,
-    check_out_date,
-    exclude_reservation_id: int | None = None
-):
-    """
-    Find the first available room of the given type for the date range.
-    Returns a Room object, or None if no room is available.
-    Overlap condition: existing.check_in < new_check_out AND existing.check_out > new_check_in
-    Uses SELECT FOR UPDATE to prevent race conditions.
-    """
-    rooms = db.query(Room).filter(
-        Room.room_type_id == room_type_id,
-        Room.status == "available"
-    ).with_for_update(skip_locked=True).all()
-
-    for room in rooms:
-        query = db.query(Reservation).filter(
-            Reservation.room_id == room.id,
-            Reservation.status.in_(["confirmed", "checked_in"]),
-            Reservation.check_in_date < check_out_date,
-            Reservation.check_out_date > check_in_date,
-        )
-        if exclude_reservation_id:
-            query = query.filter(Reservation.id != exclude_reservation_id)
-        if query.first() is None:
-            return room
-    return None
 
 
 @router.get("/", response_model=list[ReservationDetailResponse])

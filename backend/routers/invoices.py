@@ -78,8 +78,8 @@ def get_invoices(
         db.query(Invoice)
         .join(Reservation)
         .join(Client)
-        .join(Room)
-        .join(RoomType)
+        .outerjoin(Room)
+        .outerjoin(RoomType)
         .options(
             joinedload(Invoice.reservation)
             .joinedload(Reservation.client),
@@ -109,8 +109,8 @@ def get_invoices(
             **invoice.__dict__,
             client_name=f"{invoice.reservation.client.first_name} {invoice.reservation.client.last_name}",
             client_email=invoice.reservation.client.email,
-            room_number=invoice.reservation.room.number,
-            room_type_name=invoice.reservation.room.room_type.name,
+            room_number=invoice.reservation.room.number if invoice.reservation.room else "N/A",
+            room_type_name=invoice.reservation.room.room_type.name if invoice.reservation.room else "N/A",
             check_in_date=invoice.reservation.check_in_date,
             check_out_date=invoice.reservation.check_out_date
         )
@@ -129,8 +129,8 @@ def get_available_reservations(
     reservations = (
         db.query(Reservation)
         .join(Client)
-        .join(Room)
-        .join(RoomType)
+        .outerjoin(Room)
+        .outerjoin(RoomType)
         .outerjoin(Invoice)
         .filter(
             Reservation.status == "checked_out",
@@ -148,12 +148,12 @@ def get_available_reservations(
     result = []
     for reservation in reservations:
         nights = (reservation.check_out_date - reservation.check_in_date).days
-        estimated_amount = reservation.room.room_type.price_per_night * nights
+        estimated_amount = (reservation.room.room_type.price_per_night * nights) if reservation.room else Decimal("0.00")
         result.append({
             "id": reservation.id,
             "client_name": f"{reservation.client.first_name} {reservation.client.last_name}",
-            "room_number": reservation.room.number,
-            "room_type": reservation.room.room_type.name,
+            "room_number": reservation.room.number if reservation.room else "N/A",
+            "room_type": reservation.room.room_type.name if reservation.room else "N/A",
             "check_in_date": reservation.check_in_date.isoformat(),
             "check_out_date": reservation.check_out_date.isoformat(),
             "nights": nights,
@@ -216,6 +216,12 @@ def create_invoice(
     
     # Calculate invoice amounts
     nights_count = (reservation.check_out_date - reservation.check_in_date).days
+    if not reservation.room:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Impossible de créer une facture pour une réservation sans chambre assignée"
+        )
+    
     room_rate = reservation.room.room_type.price_per_night
     total_amount_ht = room_rate * nights_count
     
