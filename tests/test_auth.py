@@ -65,6 +65,23 @@ def test_login_unknown_email(client):
     assert "Email ou mot de passe incorrect" in response.json()["detail"]
 
 
+def test_login_rate_limit_returns_429_after_five_attempts(client):
+    """The sixth login attempt from one client is rejected for one minute."""
+    login_data = {
+        "email": "rate-limit@test.com",
+        "password": "invalid-password"
+    }
+
+    responses = [
+        client.post("/api/v1/auth/login", json=login_data)
+        for _ in range(6)
+    ]
+
+    assert [response.status_code for response in responses[:5]] == [401] * 5
+    assert responses[5].status_code == 429
+    assert "Trop de tentatives" in responses[5].json()["detail"]
+
+
 def test_refresh_token_valid(client, admin_token, auth_headers):
     """Test refresh token with valid token returns new token"""
     # First create a user via admin endpoint

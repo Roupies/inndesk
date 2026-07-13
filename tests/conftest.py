@@ -11,6 +11,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from backend.main import app
 from backend.core.database import get_db, Base
 from backend.core.config import settings
+from backend.core.rate_limit import limiter
 
 
 def get_test_db_url():
@@ -22,6 +23,14 @@ def get_test_db_url():
 
 
 TEST_DATABASE_URL = get_test_db_url()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Keep SlowAPI's in-memory counters isolated between tests."""
+    limiter.reset()
+    yield
+    limiter.reset()
 
 
 def create_test_database():

@@ -1,3 +1,87 @@
+import pytest
+from pydantic import ValidationError
+
+from backend.schemas.settings import PasswordChangeRequest as SettingsPasswordChangeRequest
+from backend.schemas.user import PasswordChangeRequest, UserCreate, UserResetPassword
+
+
+def test_password_confirmation_matching_is_valid():
+    data = PasswordChangeRequest(
+        current_password="CurrentPassword1",
+        new_password="NewPassword2",
+        confirm_password="NewPassword2",
+    )
+
+    assert data.confirm_password == data.new_password
+    assert SettingsPasswordChangeRequest is PasswordChangeRequest
+
+
+def test_password_confirmation_mismatch_is_rejected():
+    with pytest.raises(ValidationError, match="Les mots de passe ne correspondent pas"):
+        PasswordChangeRequest(
+            current_password="CurrentPassword1",
+            new_password="NewPassword2",
+            confirm_password="DifferentPassword3",
+        )
+
+
+@pytest.mark.parametrize(
+    ("password", "message"),
+    [
+        ("Short1", "au moins 8 caractères"),
+        ("password1", "au moins une lettre majuscule"),
+        ("Password", "au moins un chiffre"),
+    ],
+)
+def test_password_change_preserves_strength_rules(password, message):
+    with pytest.raises(ValidationError, match=message):
+        PasswordChangeRequest(
+            current_password="CurrentPassword1",
+            new_password=password,
+            confirm_password=password,
+        )
+
+
+@pytest.mark.parametrize(
+    ("schema", "payload"),
+    [
+        (
+            UserCreate,
+            {
+                "email": "schema-user@test.com",
+                "password": "weak",
+                "full_name": "Schema User",
+            },
+        ),
+        (UserResetPassword, {"new_password": "weak"}),
+    ],
+)
+def test_all_user_password_schemas_share_strength_rules(schema, payload):
+    with pytest.raises(ValidationError, match="au moins 8 caractères"):
+        schema(**payload)
+
+
+def test_change_password_success(client, reception_token, auth_headers):
+    headers = auth_headers(reception_token)
+    response = client.post(
+        "/api/v1/users/me/change-password",
+        headers=headers,
+        json={
+            "current_password": "reception123",
+            "new_password": "ChangedPassword2",
+            "confirm_password": "ChangedPassword2",
+        },
+    )
+
+    assert response.status_code == 204
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "reception@test.com", "password": "ChangedPassword2"},
+    )
+    assert login_response.status_code == 200
+
+
 def test_get_me(client, reception_token, auth_headers):
     """Test GET /users/me returns current user info"""
     headers = auth_headers(reception_token)

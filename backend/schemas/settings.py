@@ -1,7 +1,14 @@
-import re
-from typing import Optional
 from pydantic import BaseModel, field_validator
 from datetime import time
+
+from backend.schemas.user import (
+    PasswordChangeRequest,
+    UserCreate,
+    UserProfileUpdate,
+    UserResetPassword,
+    UserResponse,
+    UserUpdate,
+)
 
 
 class HotelSettingsBase(BaseModel):
@@ -41,99 +48,3 @@ class HotelSettingsResponse(HotelSettingsBase):
 
 class HotelSettingsUpdate(HotelSettingsBase):
     pass
-
-
-class PasswordChangeRequest(BaseModel):
-    current_password: str
-    new_password: str
-    confirm_password: str
-
-    @field_validator('new_password')
-    @classmethod
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
-        if not re.search(r'\d', v):
-            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
-        return v
-
-    @field_validator('confirm_password')
-    @classmethod
-    def passwords_match(cls, v, values):
-        if 'new_password' in values and v != values['new_password']:
-            raise ValueError('Les mots de passe ne correspondent pas')
-        return v
-
-
-class UserProfileUpdate(BaseModel):
-    full_name: str
-    email: str
-
-
-class UserCreate(BaseModel):
-    full_name: str
-    email: str
-    password: str
-    role: str = "receptionist"
-    is_active: bool = True
-
-    @field_validator('role')
-    @classmethod
-    def validate_role(cls, v):
-        if v not in ['admin', 'receptionist']:
-            raise ValueError('Le rôle doit être admin ou receptionist')
-        return v
-
-    @field_validator('password')
-    @classmethod
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
-        if not re.search(r'\d', v):
-            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
-        return v
-
-
-class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    email: Optional[str] = None
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-
-    @field_validator('role')
-    @classmethod
-    def validate_role(cls, v):
-        if v is not None and v not in ['admin', 'receptionist']:
-            raise ValueError('Le rôle doit être admin ou receptionist')
-        return v
-
-
-class UserResetPassword(BaseModel):
-    new_password: str
-
-    @field_validator('new_password')
-    @classmethod
-    def validate_password(cls, v):
-        if len(v) < 8:
-            raise ValueError('Le mot de passe doit contenir au moins 8 caractères')
-        if not re.search(r'\d', v):
-            raise ValueError('Le mot de passe doit contenir au moins un chiffre')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Le mot de passe doit contenir au moins une lettre majuscule')
-        return v
-
-
-class UserResponse(BaseModel):
-    id: int
-    full_name: str
-    email: str
-    role: str
-    is_active: bool
-    created_at: str
-
-    class Config:
-        from_attributes = True
