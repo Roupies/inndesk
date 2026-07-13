@@ -194,6 +194,7 @@ def get_invoice(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Facture non trouvée"
         )
+
     return invoice
 
 
@@ -369,6 +370,12 @@ def send_invoice_email(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Facture non trouvée"
+        )
+
+    if invoice.reservation.client.anonymized_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Impossible d'envoyer un email pour un client anonymisé"
         )
     
     try:

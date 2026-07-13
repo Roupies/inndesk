@@ -237,6 +237,34 @@
             background: var(--bg);
         }
 
+        .privacy-notice {
+            padding: var(--space-3);
+            margin-top: var(--space-4);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg);
+            color: var(--text-secondary);
+            font-size: var(--text-sm);
+            line-height: 1.5;
+        }
+
+        .privacy-consent {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-2);
+            margin-top: var(--space-4);
+        }
+
+        .privacy-consent input {
+            margin-top: 0.2rem;
+        }
+
+        .privacy-consent-help {
+            margin: var(--space-1) 0 0 1.5rem;
+            color: var(--text-muted);
+            font-size: var(--text-sm);
+        }
+
         @media (max-width: 768px) {
             .client-drawer {
                 width: 100vw;
@@ -450,6 +478,13 @@
                 <i data-lucide="edit" style="width: 15px; height: 15px; margin-right: 6px;"></i>
                 Éditer
             </button>
+            <button class="btn btn-secondary" id="drawerExportBtn" type="button">
+                <i data-lucide="download" style="width: 15px; height: 15px; margin-right: 6px;"></i>
+                Exporter les données
+            </button>
+            <button class="btn btn-danger" id="drawerAnonymizeBtn" type="button" hidden>
+                Anonymiser
+            </button>
             <button class="btn btn-ghost" id="drawerCloseFooterBtn" type="button">Fermer</button>
         </div>
     </aside>
@@ -468,25 +503,38 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="createFirstName" class="form-label">Prénom *</label>
-                            <input type="text" id="createFirstName" class="form-input" required>
+                            <input type="text" id="createFirstName" class="form-input" maxlength="100" required>
                         </div>
                         <div class="form-group">
                             <label for="createLastName" class="form-label">Nom *</label>
-                            <input type="text" id="createLastName" class="form-input" required>
+                            <input type="text" id="createLastName" class="form-input" maxlength="100" required>
                         </div>
                         <div class="form-group">
                             <label for="createEmail" class="form-label">Email</label>
-                            <input type="email" id="createEmail" class="form-input">
+                            <input type="email" id="createEmail" class="form-input" maxlength="254">
                         </div>
                         <div class="form-group">
                             <label for="createPhone" class="form-label">Téléphone</label>
-                            <input type="tel" id="createPhone" class="form-input">
+                            <input type="tel" id="createPhone" class="form-input" maxlength="30">
                         </div>
                         <div class="form-group full-width">
                             <label for="createNationality" class="form-label">Nationalité</label>
-                            <input type="text" id="createNationality" class="form-input">
+                            <input type="text" id="createNationality" class="form-input" maxlength="100">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="createIdDocument" class="form-label">Document d’identité (facultatif)</label>
+                            <input type="text" id="createIdDocument" class="form-input" maxlength="100" aria-describedby="createIdDocumentHelp">
+                            <p id="createIdDocumentHelp" class="privacy-consent-help" style="margin-left: 0;">À renseigner uniquement lorsqu’il est nécessaire à la gestion du séjour.</p>
                         </div>
                     </div>
+                    <div class="privacy-notice" role="note">
+                        Les informations saisies sont utilisées pour gérer le séjour, la réservation et la facturation. Les champs signalés comme obligatoires sont nécessaires à ces opérations. Vous pouvez demander l’accès, la rectification ou l’effacement de vos données auprès de l’établissement.
+                    </div>
+                    <div class="privacy-consent">
+                        <input type="checkbox" id="createConsentMarketing">
+                        <label for="createConsentMarketing">J’accepte de recevoir des communications commerciales de l’établissement.</label>
+                    </div>
+                    <p class="privacy-consent-help">Cette autorisation est facultative, n’empêche jamais une réservation et peut être retirée à tout moment.</p>
                     <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
                         <button type="button" class="btn btn-ghost" onclick="closeCreateClientModal()">Annuler</button>
                         <button type="submit" class="btn btn-primary">Créer le client</button>
@@ -511,30 +559,63 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="editFirstName" class="form-label">Prénom *</label>
-                            <input type="text" id="editFirstName" class="form-input" required>
+                            <input type="text" id="editFirstName" class="form-input" maxlength="100" required>
                         </div>
                         <div class="form-group">
                             <label for="editLastName" class="form-label">Nom *</label>
-                            <input type="text" id="editLastName" class="form-input" required>
+                            <input type="text" id="editLastName" class="form-input" maxlength="100" required>
                         </div>
                         <div class="form-group">
                             <label for="editEmail" class="form-label">Email</label>
-                            <input type="email" id="editEmail" class="form-input">
+                            <input type="email" id="editEmail" class="form-input" maxlength="254">
                         </div>
                         <div class="form-group">
                             <label for="editPhone" class="form-label">Téléphone</label>
-                            <input type="tel" id="editPhone" class="form-input">
+                            <input type="tel" id="editPhone" class="form-input" maxlength="30">
                         </div>
                         <div class="form-group full-width">
                             <label for="editNationality" class="form-label">Nationalité</label>
-                            <input type="text" id="editNationality" class="form-input">
+                            <input type="text" id="editNationality" class="form-input" maxlength="100">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="editIdDocument" class="form-label">Document d’identité (facultatif)</label>
+                            <input type="text" id="editIdDocument" class="form-input" maxlength="100">
                         </div>
                     </div>
+                    <div class="privacy-notice" role="note">
+                        Les informations saisies sont utilisées pour gérer le séjour, la réservation et la facturation. Les champs signalés comme obligatoires sont nécessaires à ces opérations. Vous pouvez demander l’accès, la rectification ou l’effacement de vos données auprès de l’établissement.
+                    </div>
+                    <div class="privacy-consent">
+                        <input type="checkbox" id="editConsentMarketing">
+                        <label for="editConsentMarketing">J’accepte de recevoir des communications commerciales de l’établissement.</label>
+                    </div>
+                    <p class="privacy-consent-help">Cette autorisation est facultative et peut être retirée à tout moment en décochant cette case.</p>
                     <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
                         <button type="button" class="btn btn-ghost" onclick="closeEditClientModal()">Annuler</button>
                         <button type="submit" class="btn btn-primary">Sauvegarder</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anonymization Confirmation Modal -->
+    <div class="modal-overlay" id="anonymizeClientModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Confirmer l’anonymisation</h2>
+                <button class="modal-close" id="anonymizeModalCloseBtn" type="button" aria-label="Fermer">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-content">
+                <p>Cette opération remplace définitivement les données identifiantes tout en conservant les réservations et factures nécessaires à l’historique.</p>
+                <p id="anonymizeClientName" style="font-weight: 600; margin: var(--space-2) 0;"></p>
+                <p style="color: var(--text-muted); font-size: var(--text-sm);">Le consentement marketing sera retiré. Cette action ne peut pas être annulée.</p>
+                <div style="display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-6);">
+                    <button type="button" class="btn btn-ghost" id="cancelAnonymizeBtn">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="confirmAnonymizeBtn">Anonymiser définitivement</button>
+                </div>
             </div>
         </div>
     </div>

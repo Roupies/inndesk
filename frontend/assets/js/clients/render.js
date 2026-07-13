@@ -7,80 +7,83 @@ function renderStats() {
     const phoneCard = document.getElementById('clientsWithPhoneCard');
     const monthCard = document.getElementById('clientsThisMonthCard');
 
-    totalCard.innerHTML = `
-        <div class="kpi-value">${stats.total_clients || 0}</div>
-        <div class="kpi-label">Total clients</div>
-    `;
+    setClientKpi(totalCard, stats.total_clients || 0, 'Total clients');
+    setClientKpi(emailCard, stats.clients_with_email || 0, 'Avec email');
+    setClientKpi(phoneCard, stats.clients_with_phone || 0, 'Avec téléphone');
+    setClientKpi(monthCard, stats.clients_this_month || 0, 'Ce mois-ci');
+}
 
-    emailCard.innerHTML = `
-        <div class="kpi-value">${stats.clients_with_email || 0}</div>
-        <div class="kpi-label">Avec email</div>
-    `;
+function setClientKpi(card, value, label) {
+    if (!card) return;
+    const valueElement = InnDesk.utils.createElement('div', { className: 'kpi-value', text: value });
+    const labelElement = InnDesk.utils.createElement('div', { className: 'kpi-label', text: label });
+    card.replaceChildren(valueElement, labelElement);
+}
 
-    phoneCard.innerHTML = `
-        <div class="kpi-value">${stats.clients_with_phone || 0}</div>
-        <div class="kpi-label">Avec téléphone</div>
-    `;
-
-    monthCard.innerHTML = `
-        <div class="kpi-value">${stats.clients_this_month || 0}</div>
-        <div class="kpi-label">Ce mois-ci</div>
-    `;
+function createClientAction(label, className, handler) {
+    const button = InnDesk.utils.createElement('button', {
+        className,
+        text: label,
+        attributes: { type: 'button' }
+    });
+    button.addEventListener('click', handler);
+    return button;
 }
 
 function renderClientsTable() {
     const tableBody = document.querySelector('#clientsTable tbody');
     const filteredClients = filterClients();
 
+    tableBody.replaceChildren();
+
     if (filteredClients.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="9">
-                    <div class="empty-state">
-                        <i data-lucide="users"></i>
-                        <h3>Aucun client trouvé</h3>
-                        <p>Créez votre premier client ou modifiez vos filtres de recherche.</p>
-                        <button class="btn btn-primary" onclick="openCreateClientModal()">
-                            <i data-lucide="plus" style="width: 16px; height: 16px; margin-right: 6px;"></i>
-                            Créer le premier client
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-        lucide.createIcons();
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 9;
+        const emptyState = InnDesk.utils.createElement('div', { className: 'empty-state' });
+        const icon = document.createElement('i');
+        icon.setAttribute('data-lucide', 'users');
+        const title = InnDesk.utils.createElement('h3', { text: 'Aucun client trouvé' });
+        const text = InnDesk.utils.createElement('p', { text: 'Créez votre premier client ou modifiez vos filtres de recherche.' });
+        const button = createClientAction('Créer le premier client', 'btn btn-primary', openCreateClientModal);
+        emptyState.append(icon, title, text, button);
+        cell.appendChild(emptyState);
+        row.appendChild(cell);
+        tableBody.appendChild(row);
+        if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         return;
     }
 
-    tableBody.innerHTML = filteredClients.map((client, index) => `
-        <tr>
-            <td>${client.id}</td>
-            <td>
-                <div style="font-weight: 500;">${getFullName(client)}</div>
-            </td>
-            <td>${client.email || '-'}</td>
-            <td>${client.phone || '-'}</td>
-            <td>${client.nationality || '-'}</td>
-            <td>-</td> <!-- Last stay - we'll populate this later -->
-            <td>0</td> <!-- Reservation count - we'll populate this later -->
-            <td>${formatDate(client.created_at)}</td>
-            <td>
-                <div class="action-buttons">
-                    <button class="btn btn-ghost btn-sm" onclick="openDetailModal(${client.id})" title="Voir les détails">
-                        <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <button class="btn btn-ghost btn-sm" onclick="openEditModal(${client.id})" title="Modifier">
-                        <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <button class="btn btn-ghost btn-sm text-danger" onclick="openDeleteModal(${client.id})" title="Supprimer">
-                        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+    filteredClients.forEach(client => {
+        const row = document.createElement('tr');
+        row.dataset.id = String(client.id);
+        [
+            client.id,
+            getFullName(client),
+            client.email || '-',
+            client.phone || '-',
+            client.nationality || '-',
+            '-',
+            '0',
+            formatDate(client.created_at)
+        ].forEach((value, index) => {
+            const cell = document.createElement('td');
+            cell.textContent = String(value);
+            if (index === 1) cell.style.fontWeight = '500';
+            row.appendChild(cell);
+        });
 
-    lucide.createIcons();
+        const actionsCell = document.createElement('td');
+        const actions = InnDesk.utils.createElement('div', { className: 'action-buttons' });
+        actions.append(
+            createClientAction('Voir', 'btn btn-ghost btn-sm', () => openDetailModal(client.id)),
+            createClientAction('Modifier', 'btn btn-secondary btn-sm', () => openEditModal(client.id)),
+            createClientAction('Supprimer', 'btn btn-ghost btn-sm text-danger', () => openDeleteModal(client.id))
+        );
+        actionsCell.appendChild(actions);
+        row.appendChild(actionsCell);
+        tableBody.appendChild(row);
+    });
 }
 
 function renderNationalityFilter() {
@@ -88,7 +91,11 @@ function renderNationalityFilter() {
     const nationalities = getUniqueNationalities();
 
     const currentValue = select.value;
-    select.innerHTML = '<option value="">Toutes</option>';
+    select.replaceChildren();
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = 'Toutes';
+    select.appendChild(allOption);
 
     nationalities.forEach(nationality => {
         const option = document.createElement('option');
@@ -101,77 +108,108 @@ function renderNationalityFilter() {
 }
 
 function renderClientDetail(client, reservations) {
-    const grid = document.getElementById('detailGrid');
-    
-    grid.innerHTML = `
-        <div class="detail-group">
-            <div class="detail-label">Identité</div>
-            <div class="detail-value">${getFullName(client)}</div>
-        </div>
-        
-        <div class="detail-group">
-            <div class="detail-label">Email</div>
-            <div class="detail-value">${client.email || 'Non renseigné'}</div>
-        </div>
-        
-        <div class="detail-group">
-            <div class="detail-label">Téléphone</div>
-            <div class="detail-value">${client.phone || 'Non renseigné'}</div>
-        </div>
-        
-        <div class="detail-group">
-            <div class="detail-label">Nationalité</div>
-            <div class="detail-value">${client.nationality || 'Non renseignée'}</div>
-        </div>
-        
-        <div class="detail-group">
-            <div class="detail-label">Créé le</div>
-            <div class="detail-value">${formatDateTime(client.created_at)}</div>
-        </div>
-        
+    const body = document.getElementById('drawerBody');
+    if (!body) return;
+    InnDesk.utils.clearElement(body);
 
-        <div class="reservations-section">
-            <div class="detail-label" style="margin-bottom: var(--space-3);">
-                Historique des réservations (${reservations.length})
-            </div>
-            ${renderReservationsHistory(reservations)}
-        </div>
-    `;
+    const fieldsGrid = document.createElement('div');
+    fieldsGrid.className = 'drawer-field-grid';
+    [
+        ['Identité', getFullName(client)],
+        ['Email', client.email || 'Non renseigné'],
+        ['Téléphone', client.phone || 'Non renseigné'],
+        ['Nationalité', client.nationality || 'Non renseignée'],
+        ['Document d’identité', client.id_document || 'Non renseigné'],
+        ['Communications commerciales', client.consent_marketing ? 'Consentement actif' : 'Aucun consentement'],
+        ['Consentement enregistré le', client.consent_marketing_at ? formatDateTime(client.consent_marketing_at) : 'Non applicable'],
+        ['Anonymisé le', client.anonymized_at ? formatDateTime(client.anonymized_at) : 'Non'],
+        ['Créé le', formatDateTime(client.created_at)]
+    ].forEach(([label, value]) => {
+        const field = document.createElement('div');
+        field.className = 'drawer-field';
+        const fieldLabel = document.createElement('div');
+        fieldLabel.className = 'drawer-field-label';
+        fieldLabel.textContent = label;
+        const fieldValue = document.createElement('div');
+        fieldValue.className = 'drawer-field-value';
+        fieldValue.textContent = value;
+        field.append(fieldLabel, fieldValue);
+        fieldsGrid.appendChild(field);
+    });
+    body.appendChild(fieldsGrid);
+
+    const historyTitle = document.createElement('h3');
+    historyTitle.className = 'drawer-section-title';
+    historyTitle.textContent = `Historique des réservations (${reservations.length})`;
+    body.appendChild(historyTitle);
+
+    if (reservations.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-muted';
+        empty.textContent = 'Aucune réservation pour ce client';
+        body.appendChild(empty);
+        return;
+    }
+
+    reservations.forEach(reservation => {
+        const item = document.createElement('div');
+        item.className = 'drawer-reservation-item';
+        const info = document.createElement('div');
+        const identifier = document.createElement('strong');
+        identifier.textContent = `Réservation #${reservation.id}`;
+        const dates = document.createElement('div');
+        dates.className = 'text-sm text-muted';
+        dates.textContent = `${formatDate(reservation.check_in_date)} – ${formatDate(reservation.check_out_date)}`;
+        info.append(identifier, dates, InnDesk.utils.createStatusBadge(reservation.status));
+        const room = document.createElement('div');
+        room.className = 'text-sm';
+        room.textContent = `Chambre ${reservation.room?.number || 'N/A'}`;
+        item.append(info, room);
+        body.appendChild(item);
+    });
 }
 
 function renderReservationsHistory(reservations) {
+    const list = document.createElement('div');
+    list.className = 'reservations-list';
     if (!reservations || reservations.length === 0) {
-        return `
-            <div class="empty-state" style="padding: var(--space-4);">
-                <i data-lucide="calendar-x"></i>
-                <p>Aucune réservation pour ce client</p>
-            </div>
-        `;
+        list.className = 'empty-state';
+        list.style.padding = 'var(--space-4)';
+        const icon = document.createElement('i');
+        icon.setAttribute('data-lucide', 'calendar-x');
+        list.append(icon, InnDesk.utils.createElement('p', { text: 'Aucune réservation pour ce client' }));
+        return list;
     }
 
-    return `
-        <div class="reservations-list">
-            ${reservations.map(reservation => `
-                <div class="reservation-item">
-                    <div class="reservation-info">
-                        <div>
-                            <strong>Réservation #${reservation.id}</strong>
-                            ${getStatusBadge(reservation.status)}
-                        </div>
-                        <div class="reservation-dates">
-                            ${formatDate(reservation.check_in_date)} - ${formatDate(reservation.check_out_date)}
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 500;">${reservation.total_amount ? `${reservation.total_amount}€` : '-'}</div>
-                        <div style="font-size: var(--text-sm); color: var(--text-muted);">
-                            Chambre ${reservation.room?.number || 'N/A'}
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
+    reservations.forEach(reservation => {
+        const item = InnDesk.utils.createElement('div', { className: 'reservation-item' });
+        const info = InnDesk.utils.createElement('div', { className: 'reservation-info' });
+        const heading = document.createElement('div');
+        heading.append(
+            InnDesk.utils.createElement('strong', { text: `Réservation #${reservation.id}` }),
+            getStatusBadge(reservation.status)
+        );
+        info.append(
+            heading,
+            InnDesk.utils.createElement('div', {
+                className: 'reservation-dates',
+                text: `${formatDate(reservation.check_in_date)} - ${formatDate(reservation.check_out_date)}`
+            })
+        );
+        const summary = document.createElement('div');
+        summary.style.textAlign = 'right';
+        const amount = InnDesk.utils.createElement('div', {
+            text: reservation.total_amount ? `${reservation.total_amount}€` : '-'
+        });
+        amount.style.fontWeight = '500';
+        const room = InnDesk.utils.createElement('div', { text: `Chambre ${reservation.room?.number || 'N/A'}` });
+        room.style.fontSize = 'var(--text-sm)';
+        room.style.color = 'var(--text-muted)';
+        summary.append(amount, room);
+        item.append(info, summary);
+        list.appendChild(item);
+    });
+    return list;
 }
 
 function getStatusBadge(status) {
@@ -191,8 +229,10 @@ function getStatusBadge(status) {
         'no_show': 'No show'
     };
 
-    const badgeClass = badges[status] || 'badge-gray';
-    const label = labels[status] || status;
-
-    return `<span class="badge ${badgeClass}" style="margin-left: var(--space-2);">${label}</span>`;
+    const badge = InnDesk.utils.createElement('span', {
+        className: `badge ${badges[status] || 'badge-gray'}`,
+        text: labels[status] || status
+    });
+    badge.style.marginLeft = 'var(--space-2)';
+    return badge;
 }

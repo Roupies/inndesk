@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, false
 from sqlalchemy.sql import func
 
 from backend.core.database import Base
@@ -10,11 +10,14 @@ class Client(Base):
     id = Column(Integer, primary_key=True, index=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
-    email = Column(String(255), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=True, index=True)
     phone = Column(String(30))
     nationality = Column(String(100))
     id_document = Column(String(100))
+    consent_marketing = Column(Boolean, nullable=False, default=False, server_default=false())
+    consent_marketing_at = Column(DateTime(timezone=True), nullable=True)
+    anonymized_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
-        return f"<Client(id={self.id}, last_name='{self.last_name}')>"
+        return f"<Client(id={self.id})>"

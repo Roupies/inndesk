@@ -39,7 +39,9 @@ document.getElementById('createClientForm').addEventListener('submit', async (e)
         last_name: lastName,
         email: document.getElementById('createEmail').value.trim() || null,
         phone: document.getElementById('createPhone').value.trim() || null,
-        nationality: document.getElementById('createNationality').value.trim() || null
+        nationality: document.getElementById('createNationality').value.trim() || null,
+        id_document: document.getElementById('createIdDocument').value.trim() || null,
+        consent_marketing: document.getElementById('createConsentMarketing').checked
     };
     
     try {
@@ -70,7 +72,9 @@ document.getElementById('editClientForm').addEventListener('submit', async (e) =
         last_name: lastName,
         email: document.getElementById('editEmail').value.trim() || null,
         phone: document.getElementById('editPhone').value.trim() || null,
-        nationality: document.getElementById('editNationality').value.trim() || null
+        nationality: document.getElementById('editNationality').value.trim() || null,
+        id_document: document.getElementById('editIdDocument').value.trim() || null,
+        consent_marketing: document.getElementById('editConsentMarketing').checked
     };
     
     try {
@@ -97,6 +101,19 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     }
 });
 
+document.getElementById('confirmAnonymizeBtn').addEventListener('click', async () => {
+    if (!selectedClientForAnonymization) return;
+
+    try {
+        await InnDesk.api.clients.anonymize(selectedClientForAnonymization.id);
+        closeAnonymizeClientModal();
+        showToast('Client anonymisé ; les relations historiques sont conservées', 'success');
+        await loadData();
+    } catch (error) {
+        showToast(error.detail || "Erreur lors de l'anonymisation", 'error');
+    }
+});
+
 // ESC key handler for modals
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -104,10 +121,12 @@ document.addEventListener('keydown', (e) => {
             closeCreateClientModal();
         } else if (document.getElementById('editClientModal').style.display === 'flex') {
             closeEditClientModal();
-        } else if (document.getElementById('detailClientModal').style.display === 'flex') {
+        } else if (document.getElementById('clientDrawer')?.classList.contains('open')) {
             closeDetailModal();
         } else if (document.getElementById('deleteClientModal').style.display === 'flex') {
             closeDeleteClientModal();
+        } else if (document.getElementById('anonymizeClientModal').style.display === 'flex') {
+            closeAnonymizeClientModal();
         }
     }
 });

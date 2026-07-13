@@ -2,17 +2,22 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from backend.core.database import get_db
-from backend.core.security import get_current_user
+from backend.core.security import get_current_user, require_admin
 from backend.models.client import Client
+from backend.models.invoice import Invoice
 from backend.models.reservation import Reservation
 from backend.models.user import User
 from backend.schemas.client import ClientCreate, ClientResponse, ClientUpdate, ClientListResponse, ClientDetailResponse
 from backend.schemas.reservation import ReservationResponse
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 @router.get("/stats")
@@ -102,6 +107,8 @@ def create_client(
         phone=client_data.phone,
         nationality=client_data.nationality,
         id_document=client_data.id_document,
+        consent_marketing=client_data.consent_marketing,
+        consent_marketing_at=utc_now() if client_data.consent_marketing else None,
     )
     
     db.add(client)
@@ -125,8 +132,10 @@ def update_client(
             detail="Client non trouvé"
         )
     
+    updates = client_data.model_dump(exclude_unset=True)
+
     # Check email uniqueness if being updated
-    if client_data.email is not None and client_data.email != client.email:
+    if "email" in updates and updates["email"] and updates["email"] != client.email:
         existing_client = db.query(Client).filter(Client.email == client_data.email).first()
         if existing_client:
             raise HTTPException(
@@ -138,18 +147,124 @@ def update_client(
         client.first_name = client_data.first_name
     if client_data.last_name is not None:
         client.last_name = client_data.last_name
-    if client_data.email is not None:
-        client.email = client_data.email
-    if client_data.phone is not None:
-        client.phone = client_data.phone
-    if client_data.nationality is not None:
-        client.nationality = client_data.nationality
-    if client_data.id_document is not None:
-        client.id_document = client_data.id_document
+
+    for field in ("email", "phone", "nationality", "id_document"):
+        if field in updates:
+            setattr(client, field, updates[field])
+
+    if "consent_marketing" in updates:
+        consent_marketing = updates["consent_marketing"]
+        if consent_marketing and not client.consent_marketing:
+            client.consent_marketing_at = utc_now()
+        elif not consent_marketing:
+            client.consent_marketing_at = None
+        client.consent_marketing = consent_marketing
     
     db.commit()
     db.refresh(client)
     
+    return client
+
+
+@router.get("/{client_id}/export")
+def export_client_data(
+    client_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client non trouvé")
+
+    reservations = (
+        db.query(Reservation)
+        .options(joinedload(Reservation.room), joinedload(Reservation.room_type))
+        .filter(Reservation.client_id == client_id)
+        .order_by(Reservation.check_in_date.desc())
+        .all()
+    )
+    reservation_ids = [reservation.id for reservation in reservations]
+    invoices = []
+    if reservation_ids:
+        invoices = (
+            db.query(Invoice)
+            .filter(Invoice.reservation_id.in_(reservation_ids))
+            .order_by(Invoice.created_at.desc())
+            .all()
+        )
+
+    return {
+        "generated_at": utc_now(),
+        "client": {
+            "id": client.id,
+            "first_name": client.first_name,
+            "last_name": client.last_name,
+            "email": client.email,
+            "phone": client.phone,
+            "nationality": client.nationality,
+            "id_document": client.id_document,
+            "consent_marketing": client.consent_marketing,
+            "consent_marketing_at": client.consent_marketing_at,
+            "anonymized_at": client.anonymized_at,
+            "created_at": client.created_at,
+        },
+        "reservations": [
+            {
+                "id": reservation.id,
+                "check_in_date": reservation.check_in_date,
+                "check_out_date": reservation.check_out_date,
+                "status": reservation.status,
+                "adults": reservation.adults,
+                "children": reservation.children,
+                "room_number": reservation.room.number if reservation.room else None,
+                "room_type": reservation.room_type.name if reservation.room_type else None,
+                "total_amount": reservation.total_amount,
+                "notes": reservation.notes,
+            }
+            for reservation in reservations
+        ],
+        "invoices": [
+            {
+                "id": invoice.id,
+                "reservation_id": invoice.reservation_id,
+                "total_amount": invoice.total_amount,
+                "tva_amount": invoice.tva_amount,
+                "total_ttc": invoice.total_ttc,
+                "payment_status": invoice.payment_status,
+                "payment_method": invoice.payment_method,
+                "paid_at": invoice.paid_at,
+                "created_at": invoice.created_at,
+            }
+            for invoice in invoices
+        ],
+    }
+
+
+@router.post("/{client_id}/anonymize", response_model=ClientDetailResponse)
+def anonymize_client(
+    client_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client non trouvé")
+
+    if client.anonymized_at is not None:
+        return client
+
+    client.first_name = "Client"
+    client.last_name = "Anonymisé"
+    client.email = f"anonymized-{client.id}@invalid.local"
+    client.phone = None
+    client.nationality = None
+    client.id_document = None
+    client.consent_marketing = False
+    client.consent_marketing_at = None
+    client.anonymized_at = utc_now()
+
+    db.commit()
+    db.refresh(client)
     return client
 
 

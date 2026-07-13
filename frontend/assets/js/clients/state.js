@@ -5,6 +5,8 @@ let clients = [];
 let stats = {};
 let selectedClient = null;
 let selectedClientForDeletion = null;
+let selectedClientForAnonymization = null;
+let currentUser = null;
 let searchTimeout = null;
 
 // Current filters

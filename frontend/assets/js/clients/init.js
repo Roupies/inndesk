@@ -68,3 +68,4 @@ window.openEditModal = openEditModal;
 window.closeEditClientModal = closeEditClientModal;
 window.openDeleteModal = openDeleteModal;
 window.closeDeleteClientModal = closeDeleteClientModal;
+window.closeAnonymizeClientModal = closeAnonymizeClientModal;

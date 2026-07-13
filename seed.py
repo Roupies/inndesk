@@ -135,7 +135,10 @@ def main():
                 last_name=last_name,
                 email=email,
                 nationality=nationality,
-                phone=phone
+                phone=phone,
+                consent_marketing=False,
+                consent_marketing_at=None,
+                anonymized_at=None,
             )
             db.add(client)
             clients.append(client)
