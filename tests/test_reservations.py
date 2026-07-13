@@ -68,6 +68,91 @@ def test_create_reservation(client, admin_token, reception_token, auth_headers):
     assert "created_at" in data
 
 
+def test_create_without_room_id_assigns_distinct_available_rooms(
+    client, admin_token, reception_token, auth_headers
+):
+    """Two successive automatic assignments must not select the same room."""
+    admin_headers = auth_headers(admin_token)
+    reception_headers = auth_headers(reception_token)
+
+    room_type_response = client.post(
+        "/api/v1/room-types/",
+        headers=admin_headers,
+        json={
+            "name": "Automatic Assignment Type",
+            "description": "Rooms assigned by availability",
+            "price_per_night": "120.00",
+            "max_occupancy": 2,
+        },
+    )
+    assert room_type_response.status_code == 201
+    room_type = room_type_response.json()
+
+    rooms = []
+    for number in ("AUTO01", "AUTO02"):
+        room_response = client.post(
+            "/api/v1/rooms/",
+            headers=admin_headers,
+            json={
+                "number": number,
+                "floor": 1,
+                "room_type_id": room_type["id"],
+                "status": "available",
+            },
+        )
+        assert room_response.status_code == 201
+        rooms.append(room_response.json())
+
+    guest_response = client.post(
+        "/api/v1/clients/",
+        headers=reception_headers,
+        json={
+            "first_name": "Automatic",
+            "last_name": "Assignment",
+            "email": "automatic.assignment@test.com",
+        },
+    )
+    assert guest_response.status_code == 201
+    guest = guest_response.json()
+
+    today = date.today()
+    reservation_data = {
+        "client_id": guest["id"],
+        "room_type_id": room_type["id"],
+        "check_in_date": str(today + timedelta(days=10)),
+        "check_out_date": str(today + timedelta(days=12)),
+        "adults": 1,
+        "children": 0,
+        "status": "confirmed",
+    }
+
+    first_response = client.post(
+        "/api/v1/reservations/", json=reservation_data, headers=reception_headers
+    )
+    second_response = client.post(
+        "/api/v1/reservations/", json=reservation_data, headers=reception_headers
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    assigned_room_ids = {
+        first_response.json()["room_id"],
+        second_response.json()["room_id"],
+    }
+    assert None not in assigned_room_ids
+    assert assigned_room_ids == {room["id"] for room in rooms}
+
+    for response in (first_response, second_response):
+        stored_response = client.get(
+            f"/api/v1/reservations/{response.json()['id']}",
+            headers=reception_headers,
+        )
+        assert stored_response.status_code == 200
+        assert stored_response.json()["room_id"] == response.json()["room_id"]
+        assert stored_response.json()["room"]["id"] == response.json()["room_id"]
+
+
 def test_create_reservation_invalid_dates(client, admin_token, reception_token, auth_headers):
     """Test creating reservation with check_out <= check_in returns 400"""
     admin_headers = auth_headers(admin_token)

@@ -180,6 +180,10 @@ def create_reservation(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Aucune chambre disponible pour ces dates"
             )
+
+        # The row lock acquired by find_available_room remains held by this
+        # session until the reservation is committed below.
+        assigned_room_id = available_room.id
     
     # Calculate total amount
     nights = (reservation_data.check_out_date - reservation_data.check_in_date).days
