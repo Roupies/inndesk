@@ -57,8 +57,8 @@ function renderInvoicesTable() {
         return `
             <tr>
                 <td><strong>#${invoice.id}</strong></td>
-                <td>${invoice.client_name || '-'}</td>
-                <td>${invoice.room_number || '-'}</td>
+                <td>${escapeHtml(invoice.client_name) || '-'}</td>
+                <td>${escapeHtml(invoice.room_number) || '-'}</td>
                 <td>${dateRange}</td>
                 <td>${formatCurrency(invoice.total_amount)}</td>
                 <td>${formatCurrency(invoice.tva_amount)}</td>
@@ -123,17 +123,17 @@ function renderInvoiceDetail(invoice) {
         
         <div class="detail-group">
             <div class="detail-label">Client</div>
-            <div class="detail-value">${invoice.client_name || '-'}</div>
+            <div class="detail-value">${escapeHtml(invoice.client_name) || '-'}</div>
         </div>
         
         <div class="detail-group">
             <div class="detail-label">Email client</div>
-            <div class="detail-value">${invoice.client_email || '-'}</div>
+            <div class="detail-value">${escapeHtml(invoice.client_email) || '-'}</div>
         </div>
         
         <div class="detail-group">
             <div class="detail-label">Chambre</div>
-            <div class="detail-value">${invoice.room_number} - ${invoice.room_type_name}</div>
+            <div class="detail-value">${escapeHtml(invoice.room_number)} - ${escapeHtml(invoice.room_type_name)}</div>
         </div>
         
         <div class="detail-group">
@@ -191,7 +191,7 @@ function renderInvoiceDetail(invoice) {
         ${invoice.notes ? `
         <div class="detail-group" style="grid-column: 1 / -1;">
             <div class="detail-label">Notes</div>
-            <div class="detail-value">${invoice.notes}</div>
+            <div class="detail-value">${escapeHtml(invoice.notes)}</div>
         </div>
         ` : ''}
     `;

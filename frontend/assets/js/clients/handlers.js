@@ -19,6 +19,28 @@ document.getElementById('nationalityFilter').addEventListener('change', (e) => {
     renderClientsTable();
 });
 
+// Row click → open drawer
+document.getElementById('clientsTable').addEventListener('click', (e) => {
+    const row = e.target.closest('tr.client-row-clickable');
+    if (!row) return;
+    openDetailModal(parseInt(row.dataset.clientId));
+});
+
+// Export CSV button
+document.getElementById('exportCsvClientsBtn').addEventListener('click', () => {
+    const columns = [
+        { header: 'ID',               value: c => c.id },
+        { header: 'Prénom',           value: c => c.first_name || '' },
+        { header: 'Nom',              value: c => c.last_name || '' },
+        { header: 'Email',            value: c => c.email || '' },
+        { header: 'Téléphone',        value: c => c.phone || '' },
+        { header: 'Nationalité',      value: c => c.nationality || '' },
+        { header: 'Consentement RGPD',value: c => c.gdpr_consent ? 'Oui' : 'Non' },
+    ];
+    const csv = buildCsv(filterClients(), columns);
+    downloadCsv(csv, `clients_${todayIso()}.csv`);
+});
+
 // New client button
 document.getElementById('newClientBtn').addEventListener('click', openCreateClientModal);
 
@@ -97,15 +119,15 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async () =
     }
 });
 
-// ESC key handler for modals
+// ESC key handler for modals and drawer
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        if (document.getElementById('createClientModal').style.display === 'flex') {
+        if (document.getElementById('clientDrawer').classList.contains('open')) {
+            closeDetailModal();
+        } else if (document.getElementById('createClientModal').style.display === 'flex') {
             closeCreateClientModal();
         } else if (document.getElementById('editClientModal').style.display === 'flex') {
             closeEditClientModal();
-        } else if (document.getElementById('detailClientModal').style.display === 'flex') {
-            closeDetailModal();
         } else if (document.getElementById('deleteClientModal').style.display === 'flex') {
             closeDeleteClientModal();
         }

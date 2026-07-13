@@ -115,11 +115,14 @@ document.getElementById('generateModalCloseBtn').addEventListener('click', close
 document.getElementById('detailModalCloseBtn').addEventListener('click', closeInvoiceDetailModal);
 document.getElementById('emailModalCloseBtn').addEventListener('click', closeSendEmailModal);
 document.getElementById('paymentModalCloseBtn').addEventListener('click', closePaymentStatusModal);
+document.getElementById('pdfViewerCloseBtn').addEventListener('click', closePdfViewer);
 
 // ESC key handler for modals
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        if (document.getElementById('generateInvoiceModal').style.display === 'flex') {
+        if (document.getElementById('pdfViewerOverlay').classList.contains('show')) {
+            closePdfViewer();
+        } else if (document.getElementById('generateInvoiceModal').style.display === 'flex') {
             closeGenerateInvoiceModal();
         } else if (document.getElementById('invoiceDetailModal').style.display === 'flex') {
             closeInvoiceDetailModal();

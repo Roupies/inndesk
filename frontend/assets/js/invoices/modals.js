@@ -20,9 +20,11 @@ function openInvoiceDetailModal(invoiceId) {
     document.getElementById('detailModalTitle').textContent = `Facture #${invoice.id}`;
     renderInvoiceDetail(invoice);
     
-    // Set up download button
     const downloadBtn = document.getElementById('downloadPdfBtn');
     downloadBtn.onclick = () => downloadInvoicePDF(invoiceId);
+
+    const previewBtn = document.getElementById('previewPdfBtn');
+    previewBtn.onclick = () => openPdfViewer(invoiceId);
     
     document.getElementById('invoiceDetailModal').style.display = 'flex';
 }
@@ -30,6 +32,34 @@ function openInvoiceDetailModal(invoiceId) {
 function closeInvoiceDetailModal() {
     document.getElementById('invoiceDetailModal').style.display = 'none';
     selectedInvoiceForDetail = null;
+}
+
+async function openPdfViewer(invoiceId) {
+    const overlay = document.getElementById('pdfViewerOverlay');
+    const frame = document.getElementById('pdfViewerFrame');
+
+    frame.src = '';
+    overlay.classList.add('show');
+
+    try {
+        const objectUrl = await InnDesk.api.invoices.previewPDF(invoiceId);
+        frame.src = objectUrl;
+        frame._objectUrl = objectUrl;
+    } catch (error) {
+        overlay.classList.remove('show');
+        showToast(error.detail || 'Erreur lors du chargement du PDF', 'error');
+    }
+}
+
+function closePdfViewer() {
+    const overlay = document.getElementById('pdfViewerOverlay');
+    const frame = document.getElementById('pdfViewerFrame');
+    overlay.classList.remove('show');
+    if (frame._objectUrl) {
+        window.URL.revokeObjectURL(frame._objectUrl);
+        frame._objectUrl = null;
+    }
+    frame.src = '';
 }
 
 function openSendEmailModal(invoiceId) {
@@ -64,7 +94,7 @@ function openPaymentStatusModal(invoiceId) {
     
     // Pre-fill form with current values
     document.getElementById('paymentStatusSelect').value = invoice.payment_status;
-    document.getElementById('paymentMethodSelect').value = invoice.payment_method || 'card';
+    document.getElementById('paymentMethodSelect').value = invoice.payment_method || 'espèces';
     document.getElementById('paymentNotes').value = invoice.notes || '';
     
     // Show/hide payment method based on status
@@ -123,3 +153,4 @@ window.openSendEmailModal = openSendEmailModal;
 window.closeSendEmailModal = closeSendEmailModal;
 window.openPaymentStatusModal = openPaymentStatusModal;
 window.closePaymentStatusModal = closePaymentStatusModal;
+window.closePdfViewer = closePdfViewer;

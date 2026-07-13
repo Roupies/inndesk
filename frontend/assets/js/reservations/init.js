@@ -12,7 +12,7 @@ async function loadData() {
         document.getElementById('userRole').textContent = currentUser?.role || '';
 
         const [reservationsData, roomTypesData] = await Promise.all([
-            InnDesk.api.reservations.getAll({ limit: 1000 }),
+            InnDesk.api.reservations.getAll({ limit: 500 }),
             InnDesk.api.rooms.getTypes()
         ]);
 
@@ -44,7 +44,8 @@ document.getElementById('newReservationBtn').addEventListener('click', openCreat
 document.getElementById('createModalCloseBtn').addEventListener('click', closeCreateReservationModal);
 document.getElementById('assignModalCloseBtn').addEventListener('click', closeAssignRoomModal);
 document.getElementById('statusModalCloseBtn').addEventListener('click', closeStatusChangeModal);
-document.getElementById('detailModalCloseBtn').addEventListener('click', closeDetailModal);
+document.getElementById('drawerCloseBtn').addEventListener('click', closeReservationDrawer);
+document.getElementById('drawerOverlay').addEventListener('click', closeReservationDrawer);
 
 // Close modals on outside click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -83,6 +84,8 @@ document.getElementById('logoutButton').addEventListener('click', () => {
 });
 
 // Initialize
+_initCheckInListener();
+initCheckinTab();
 loadData();
 
 // Initialize Lucide icons

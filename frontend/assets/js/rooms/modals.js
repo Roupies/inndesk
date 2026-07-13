@@ -14,7 +14,7 @@ function openRoomModal(room) {
     roomInfoGrid.innerHTML = `
         <div class="room-info-item">
             <div class="room-info-label">Numéro</div>
-            <div class="room-info-value">${room.number}</div>
+            <div class="room-info-value">${escapeHtml(room.number)}</div>
         </div>
         <div class="room-info-item">
             <div class="room-info-label">Étage</div>
@@ -22,7 +22,7 @@ function openRoomModal(room) {
         </div>
         <div class="room-info-item">
             <div class="room-info-label">Type</div>
-            <div class="room-info-value">${room.room_type?.name || 'Type inconnu'}</div>
+            <div class="room-info-value">${escapeHtml(room.room_type?.name || 'Type inconnu')}</div>
         </div>
         <div class="room-info-item">
             <div class="room-info-label">Statut</div>
@@ -49,7 +49,7 @@ function openRoomModal(room) {
         descriptionItem.style.gridColumn = '1 / -1';
         descriptionItem.innerHTML = `
             <div class="room-info-label">Description</div>
-            <div class="room-info-value">${room.room_type.description}</div>
+            <div class="room-info-value">${escapeHtml(room.room_type.description)}</div>
         `;
         roomInfoGrid.appendChild(descriptionItem);
     }
@@ -76,7 +76,7 @@ function openRoomModal(room) {
             
             item.innerHTML = `
                 <div class="reservation-client">
-                    ${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}
+                    ${escapeHtml((reservation.client?.first_name || '') + ' ' + (reservation.client?.last_name || 'Client inconnu'))}
                 </div>
                 <div class="reservation-dates">
                     ${InnDesk.utils.formatShortDate(reservation.check_in_date)} → ${InnDesk.utils.formatShortDate(reservation.check_out_date)}
