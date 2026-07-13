@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Facture {{ invoice.id }}</title>
+    <style>
+        @page { size: A4; margin: 18mm; }
+        body { color: #1f2937; font-family: "DejaVu Sans", sans-serif; font-size: 11px; }
+        h1, h2, p { margin: 0; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 28px; }
+        .hotel { max-width: 55%; }
+        .hotel h1 { color: #2563eb; font-size: 24px; margin-bottom: 8px; }
+        .invoice-meta { text-align: right; }
+        .invoice-meta h2 { font-size: 22px; margin-bottom: 8px; }
+        .address { white-space: pre-line; }
+        .client { background: #f3f4f6; border-radius: 6px; margin-bottom: 24px; padding: 14px; }
+        .client strong { display: block; margin-bottom: 5px; }
+        table { border-collapse: collapse; margin-bottom: 18px; width: 100%; }
+        th, td { border-bottom: 1px solid #d1d5db; padding: 10px 8px; text-align: left; }
+        th { background: #eff6ff; color: #1d4ed8; }
+        .amount { text-align: right; }
+        .totals { margin-left: auto; width: 46%; }
+        .totals td { border: 0; padding: 5px 8px; }
+        .total-ttc { border-top: 2px solid #2563eb; font-size: 14px; font-weight: bold; }
+        .footer { color: #6b7280; margin-top: 38px; text-align: center; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <section class="hotel">
+            <h1>{{ hotel_name | e }}</h1>
+            <p class="address">{{ hotel_address | e }}</p>
+            <p>{{ hotel_phone | e }} · {{ hotel_email | e }}</p>
+            <p>SIRET : {{ hotel_siret | e }}</p>
+        </section>
+        <section class="invoice-meta">
+            <h2>Facture n° {{ invoice.id }}</h2>
+            <p>Date d’émission : {{ issue_date | e }}</p>
+            <p>Réservation n° {{ reservation.id }}</p>
+        </section>
+    </header>
+
+    <section class="client">
+        <strong>Facturé à</strong>
+        <p>{{ client.first_name | e }} {{ client.last_name | e }}</p>
+        {% if client.email %}<p>{{ client.email | e }}</p>{% endif %}
+        {% if client.phone %}<p>{{ client.phone | e }}</p>{% endif %}
+    </section>
+
+    <table>
+        <thead>
+            <tr><th>Prestation</th><th>Période</th><th class="amount">Montant HT</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    Séjour de {{ invoice.nights_count }} nuit(s)
+                    {% if room %}– chambre {{ room.number | e }}{% endif %}
+                    {% if room_type %}({{ room_type.name | e }}){% endif %}
+                </td>
+                <td>{{ reservation.check_in_date }} au {{ reservation.check_out_date }}</td>
+                <td class="amount">{{ "%.2f" | format(invoice.total_amount) }} €</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="totals">
+        <tr><td>Total HT</td><td class="amount">{{ "%.2f" | format(invoice.total_amount) }} €</td></tr>
+        <tr><td>TVA ({{ "%.2f" | format(invoice.tva_rate) }} %)</td><td class="amount">{{ "%.2f" | format(invoice.tva_amount) }} €</td></tr>
+        <tr class="total-ttc"><td>Total TTC</td><td class="amount">{{ "%.2f" | format(invoice.total_ttc) }} €</td></tr>
+    </table>
+
+    <p>Statut du paiement : {{ invoice.payment_status | e }}</p>
+    {% if invoice.payment_method %}<p>Moyen de paiement : {{ invoice.payment_method | e }}</p>{% endif %}
+
+    <footer class="footer">Document généré par InnDesk.</footer>
+</body>
+</html>

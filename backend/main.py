@@ -60,7 +60,8 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
 # Register routers
-from backend.routers import auth, users, room_types, rooms, clients, reservations, invoices, settings, housekeeping
+from backend.routers import auth, users, room_types, rooms, clients, reservations, invoices, settings, housekeeping, health
+app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(room_types.router, prefix="/api/v1")

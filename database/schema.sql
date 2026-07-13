@@ -4,10 +4,13 @@ CREATE TABLE clients (
 	id SERIAL NOT NULL, 
 	first_name VARCHAR(100) NOT NULL, 
 	last_name VARCHAR(100) NOT NULL, 
-	email VARCHAR(255) NOT NULL, 
+	email VARCHAR(255),
 	phone VARCHAR(30), 
 	nationality VARCHAR(100), 
 	id_document VARCHAR(100), 
+	consent_marketing BOOLEAN DEFAULT false NOT NULL,
+	consent_marketing_at TIMESTAMP WITH TIME ZONE,
+	anonymized_at TIMESTAMP WITH TIME ZONE,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT now(), 
 	PRIMARY KEY (id)
 );
@@ -103,4 +106,3 @@ CREATE TABLE invoices (
 	UNIQUE (reservation_id), 
 	FOREIGN KEY(reservation_id) REFERENCES reservations (id)
 );
-

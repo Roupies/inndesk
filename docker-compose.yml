@@ -3,40 +3,48 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: inndesk
-      POSTGRES_USER: inndesk
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-inndesk}
+      POSTGRES_USER: ${POSTGRES_USER:-inndesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U inndesk"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - inndesk_internal
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://inndesk:${POSTGRES_PASSWORD}@db:5432/inndesk
-      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-inndesk}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@db:5432/${POSTGRES_DB:-inndesk}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_HOURS: ${ACCESS_TOKEN_EXPIRE_HOURS:-8}
-      HOTEL_NAME: ${HOTEL_NAME:-Hôtel de la Paix}
-      HOTEL_ADDRESS: ${HOTEL_ADDRESS:-12 Rue de Rivoli, 75001 Paris}
-      HOTEL_SIRET: ${HOTEL_SIRET:-123 456 789 00012}
-      HOTEL_EMAIL: ${HOTEL_EMAIL:-contact@hotel-de-la-paix.fr}
-      HOTEL_PHONE: ${HOTEL_PHONE:-+33 1 42 00 00 00}
-      RESEND_API_KEY: ${RESEND_API_KEY:-your_resend_api_key_here}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-factures@hotel-de-la-paix.fr}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
     depends_on:
       db:
         condition: service_healthy
-    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - inndesk_internal
 
 volumes:
   postgres_data:
+
+networks:
+  inndesk_internal:
+    driver: bridge

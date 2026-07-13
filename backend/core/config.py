@@ -1,8 +1,10 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     DATABASE_URL: str
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
@@ -19,10 +21,6 @@ class Settings(BaseSettings):
     # Email settings
     RESEND_API_KEY: str = "your_resend_api_key_here"
     RESEND_FROM_EMAIL: str = "factures@hotel-de-la-paix.fr"
-
-    class Config:
-        env_file = ".env"
-
 
 @lru_cache()
 def get_settings():
