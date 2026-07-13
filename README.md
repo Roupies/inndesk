@@ -225,3 +225,5 @@ Après exécution de `seed.py` :
 ## Support
 
 Ce projet est développé dans un cadre pédagogique. Pour toute question technique, consultez la documentation dans `CLAUDE.md`.
+---
+*InnDesk — RNCP Niveau 5 — 2026*
