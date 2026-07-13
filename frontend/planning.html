@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Planning</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/app/planning.html" class="nav-link active">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/app/rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./reservations.html" class="nav-link">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./clients.html" class="nav-link">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./housekeeping.html" class="nav-link">
+                            <i data-lucide="sparkles" class="nav-icon"></i>
+                            Gouvernante
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./invoices.html" class="nav-link">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./settings.html" class="nav-link">
+                            <i data-lucide="settings" class="nav-icon"></i>
+                            Paramètres
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Planning</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Vue chambres × dates</p>
+            </div>
+
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content pg-main">
+            <!-- Toolbar -->
+            <div class="pg-toolbar">
+                <div class="pg-nav" role="group" aria-label="Navigation du planning">
+                    <button class="btn btn-ghost btn-sm pg-nav-btn" id="pgPrev" aria-label="Semaine précédente">
+                        <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
+                    </button>
+                    <span class="pg-window-label" id="pgWindowLabel" aria-live="polite"></span>
+                    <button class="btn btn-ghost btn-sm pg-nav-btn" id="pgNext" aria-label="Semaine suivante">
+                        <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
+                    </button>
+                    <button class="btn btn-ghost btn-sm" id="pgToday">Aujourd'hui</button>
+                </div>
+
+                <div class="pg-view-btns" role="group" aria-label="Fenêtre temporelle">
+                    <button class="btn btn-ghost btn-sm" id="pgBtn7" aria-pressed="false">7j</button>
+                    <button class="btn btn-ghost btn-sm active" id="pgBtn14" aria-pressed="true">14j</button>
+                    <button class="btn btn-ghost btn-sm" id="pgBtn28" aria-pressed="false">28j</button>
+                </div>
+
+                <div class="pg-legend" role="list" aria-label="Légende">
+                    <span class="pg-legend-item" role="listitem">
+                        <span class="pg-legend-dot pg-legend-dot--confirmed" aria-hidden="true"></span>
+                        Confirmée
+                    </span>
+                    <span class="pg-legend-item" role="listitem">
+                        <span class="pg-legend-dot pg-legend-dot--checked_in" aria-hidden="true"></span>
+                        En séjour
+                    </span>
+                    <span class="pg-legend-item" role="listitem">
+                        <span class="pg-legend-dot pg-legend-dot--checked_out" aria-hidden="true"></span>
+                        Départ
+                    </span>
+                </div>
+            </div>
+
+            <!-- Grid wrapper -->
+            <div class="pg-wrapper">
+                <div class="pg-grid" id="pgGrid" role="grid" aria-label="Planning des réservations">
+                    <div class="pg-loading" style="grid-column:1/-1;grid-row:2;">Chargement…</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail modal overlay -->
+    <div class="pg-detail-overlay" id="pgDetailOverlay" aria-hidden="true"></div>
+
+    <!-- Detail modal -->
+    <div class="pg-detail-modal" id="pgDetailModal" role="dialog" aria-modal="true" aria-labelledby="pgDetailTitle">
+        <div class="pg-detail-header">
+            <h2 class="pg-detail-title" id="pgDetailTitle">Détail de la réservation</h2>
+            <button class="pg-detail-close" id="pgDetailClose" aria-label="Fermer">
+                <i data-lucide="x" style="width:18px;height:18px;"></i>
+            </button>
+        </div>
+        <div class="pg-detail-body" id="pgDetailBody"></div>
+        <div class="pg-detail-footer" id="pgDetailActions"></div>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script src="./assets/api/auth.js"></script>
+    <script src="./assets/api/rooms.js"></script>
+    <script src="./assets/api/reservations.js"></script>
+    <script src="./assets/api/clients.js"></script>
+    <script src="./assets/api/index.js"></script>
+    <script src="./assets/js/planning/state.js"></script>
+    <script src="./assets/js/planning/utils.js"></script>
+    <script src="./assets/js/planning/render.js"></script>
+    <script src="./assets/js/planning/handlers.js"></script>
+    <script src="./assets/js/planning/init.js"></script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Tableau de bord</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+            
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link active">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./planning.html" class="nav-link">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./reservations.html" class="nav-link">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./clients.html" class="nav-link">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./housekeeping.html" class="nav-link">
+                            <i data-lucide="sparkles" class="nav-icon"></i>
+                            Gouvernante
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./invoices.html" class="nav-link">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./settings.html" class="nav-link">
+                            <i data-lucide="settings" class="nav-icon"></i>
+                            Paramètres
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Tableau de bord</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;" id="currentDate"></p>
+            </div>
+            
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- KPI Cards Row -->
+            <section class="mb-6">
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="kpi-card kpi-card--accent" id="availableRoomsCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                    <div class="kpi-card" id="arrivalsCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                    <div class="kpi-card" id="departuresCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                    <div class="kpi-card" id="occupancyCard">
+                        <div class="skeleton skeleton-text" style="height: 2rem; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="height: 1rem;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <p id="lastRefreshLabel" style="font-size: var(--text-sm); color: var(--text-muted); margin-top: calc(-1 * var(--space-3)); margin-bottom: var(--space-6); display: none;" aria-live="polite"></p>
+
+            <!-- Arrivées / Départs du jour -->
+            <section class="mb-6">
+                <div class="dashboard-two-col">
+                    <!-- Arrivées du jour -->
+                    <div class="card">
+                        <h2 class="section-title">Arrivées du jour</h2>
+                        <div id="arrivalsList">
+                            <div class="dashboard-list-item">
+                                <div class="skeleton skeleton-text" style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;"></div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 70%;"></div>
+                                    <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                                </div>
+                            </div>
+                            <div class="dashboard-list-item">
+                                <div class="skeleton skeleton-text" style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;"></div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 70%;"></div>
+                                    <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                                </div>
+                            </div>
+                            <div class="dashboard-list-item">
+                                <div class="skeleton skeleton-text" style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;"></div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 70%;"></div>
+                                    <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Départs du jour -->
+                    <div class="card">
+                        <h2 class="section-title">Départs du jour</h2>
+                        <div id="departuresList">
+                            <div class="dashboard-list-item">
+                                <div class="skeleton skeleton-text" style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;"></div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 70%;"></div>
+                                    <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                                </div>
+                            </div>
+                            <div class="dashboard-list-item">
+                                <div class="skeleton skeleton-text" style="width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;"></div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="skeleton skeleton-text" style="margin-bottom: 4px; width: 70%;"></div>
+                                    <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Réservations actives -->
+            <section class="mb-6">
+                <h2 class="section-title mb-3">Réservations actives</h2>
+                <div class="card" style="padding: 0;">
+                    <div style="overflow-x: auto;">
+                        <table class="table" id="reservationsTable">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Chambre</th>
+                                    <th>Arrivée</th>
+                                    <th>Départ</th>
+                                    <th>Statut</th>
+                                    <th>Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td></tr>
+                                <tr><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td></tr>
+                                <tr><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td><td><div class="skeleton skeleton-text"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- État des chambres -->
+            <section class="mb-6">
+                <h2 class="section-title mb-3">État des chambres</h2>
+                <div class="grid grid-cols-4 gap-4" id="roomsGrid">
+                    <div class="room-card"><div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div><div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div><div class="skeleton skeleton-text"></div></div>
+                    <div class="room-card"><div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div><div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div><div class="skeleton skeleton-text"></div></div>
+                    <div class="room-card"><div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div><div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div><div class="skeleton skeleton-text"></div></div>
+                    <div class="room-card"><div class="skeleton skeleton-text" style="margin-bottom: 8px;"></div><div class="skeleton skeleton-text" style="margin-bottom: 4px;"></div><div class="skeleton skeleton-text"></div></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script src="./assets/api/auth.js"></script>
+    <script src="./assets/api/rooms.js"></script>
+    <script src="./assets/api/reservations.js"></script>
+    <script src="./assets/api/clients.js"></script>
+    <script src="./assets/api/index.js"></script>
+    <script src="./assets/js/dashboard/render.js"></script>
+    <script src="./assets/js/dashboard/init.js"></script>
+</body>
+</html>

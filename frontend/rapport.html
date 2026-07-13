@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnDesk - Rapport mensuel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/style.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        /* ── Month Selector ─────────────────────────────────────────── */
+        .month-selector {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-6);
+        }
+
+        .month-nav-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: var(--space-2) var(--space-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        .month-nav-btn:hover,
+        .month-nav-btn:focus-visible {
+            background: var(--bg-tertiary, var(--border));
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .month-label {
+            font-size: var(--text-lg, 1.125rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 160px;
+            text-align: center;
+        }
+
+        /* ── Chart ──────────────────────────────────────────────────── */
+        .chart-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--border-radius);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .chart-title {
+            font-size: var(--text-sm);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-4);
+        }
+
+        #occupancyChart {
+            width: 100%;
+            height: 220px;
+            display: block;
+        }
+
+        /* ── Export button row ──────────────────────────────────────── */
+        .rapport-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: var(--space-4);
+        }
+
+        /* ── Print styles ───────────────────────────────────────────── */
+        @media print {
+            .sidebar,
+            .topbar,
+            .rapport-actions,
+            .month-selector {
+                display: none !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                margin-top: 0 !important;
+                padding: 0 !important;
+            }
+
+            .app-layout {
+                display: block !important;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .card, .kpi-card, .chart-card {
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+                break-inside: avoid;
+            }
+
+            .kpi-value, .kpi-label {
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
+
+            <nav class="nav-menu">
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li class="nav-item">
+                        <a href="/app/dashboard.html" class="nav-link">
+                            <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                            Tableau de bord
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./planning.html" class="nav-link">
+                            <i data-lucide="calendar" class="nav-icon"></i>
+                            Planning
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./rooms.html" class="nav-link">
+                            <i data-lucide="bed" class="nav-icon"></i>
+                            Chambres
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./reservations.html" class="nav-link">
+                            <i data-lucide="calendar-check" class="nav-icon"></i>
+                            Réservations
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./clients.html" class="nav-link">
+                            <i data-lucide="users" class="nav-icon"></i>
+                            Clients
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./housekeeping.html" class="nav-link">
+                            <i data-lucide="sparkles" class="nav-icon"></i>
+                            Gouvernante
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./invoices.html" class="nav-link">
+                            <i data-lucide="file-text" class="nav-icon"></i>
+                            Factures
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./rapport.html" class="nav-link active">
+                            <i data-lucide="bar-chart-2" class="nav-icon"></i>
+                            Rapport
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./settings.html" class="nav-link">
+                            <i data-lucide="settings" class="nav-icon"></i>
+                            Paramètres
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="nav-user">
+                <div class="nav-user-name" id="userName">Chargement...</div>
+                <div class="nav-user-role" id="userRole"></div>
+                <button class="btn btn-ghost btn-sm" id="logoutButton" style="width: 100%; margin-top: 8px;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 6px;"></i>
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+
+        <!-- Topbar -->
+        <div class="topbar">
+            <div>
+                <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Rapport mensuel</h1>
+                <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;" id="currentDate"></p>
+            </div>
+
+            <button class="theme-toggle" id="themeToggle" aria-label="Changer de thème">
+                <i data-lucide="sun" id="themeIconLight" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="moon" id="themeIconDark" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Month Selector + Export -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-6);">
+                <div class="month-selector" style="margin-bottom: 0;">
+                    <button class="month-nav-btn" id="prevMonthBtn" aria-label="Mois précédent">
+                        <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <span class="month-label" id="monthLabel" aria-live="polite">—</span>
+                    <button class="month-nav-btn" id="nextMonthBtn" aria-label="Mois suivant">
+                        <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+
+                <button class="btn btn-outline" id="exportPdfBtn">
+                    <i data-lucide="printer" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                    Exporter PDF
+                </button>
+            </div>
+
+            <!-- KPI Cards -->
+            <section class="mb-6">
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="kpi-card kpi-card--accent" id="occupancyCard">
+                        <div class="kpi-value" id="occupancyValue">—</div>
+                        <div class="kpi-label">Taux d'occupation</div>
+                    </div>
+                    <div class="kpi-card" id="revenueCard">
+                        <div class="kpi-value" id="revenueValue">—</div>
+                        <div class="kpi-label">Revenus du mois</div>
+                    </div>
+                    <div class="kpi-card" id="staysCard">
+                        <div class="kpi-value" id="staysValue">—</div>
+                        <div class="kpi-label">Nombre de séjours</div>
+                    </div>
+                    <div class="kpi-card" id="avgNightsCard">
+                        <div class="kpi-value" id="avgNightsValue">—</div>
+                        <div class="kpi-label">Durée moy. de séjour</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bar Chart -->
+            <section class="mb-6">
+                <div class="chart-card">
+                    <p class="chart-title">Chambres occupées par jour</p>
+                    <canvas id="occupancyChart" role="img" aria-label="Graphique en barres : chambres occupées par jour du mois"></canvas>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="./assets/app.js"></script>
+    <script src="./assets/api/auth.js"></script>
+    <script src="./assets/api/rooms.js"></script>
+    <script src="./assets/api/reservations.js"></script>
+    <script src="./assets/api/index.js"></script>
+    <script src="./assets/js/rapport.js"></script>
+</body>
+</html>
