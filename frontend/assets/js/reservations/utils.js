@@ -39,22 +39,20 @@ function calculateNights(checkIn, checkOut) {
     return Math.max(0, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
 }
 
-// Set minimum dates (only updates min values, listener registered once at init)
+// Set minimum dates
 function setMinimumDates() {
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('checkInDate').min = today;
-}
-
-function _initCheckInListener() {
     const checkInInput = document.getElementById('checkInDate');
     const checkOutInput = document.getElementById('checkOutDate');
 
+    checkInInput.min = today;
+    
     checkInInput.addEventListener('change', () => {
         if (checkInInput.value) {
             const nextDay = new Date(checkInInput.value);
             nextDay.setDate(nextDay.getDate() + 1);
             checkOutInput.min = nextDay.toISOString().split('T')[0];
-
+            
             if (checkOutInput.value && checkOutInput.value <= checkInInput.value) {
                 checkOutInput.value = nextDay.toISOString().split('T')[0];
             }

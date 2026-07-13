@@ -95,11 +95,13 @@ async function loadArrivalsToday() {
     try {
         const today = new Date().toISOString().split('T')[0];
         const reservations = await InnDesk.api.reservations.getAll({
-            reservation_status: 'confirmed',
-            limit: 100
+            start: today,
+            end: today,
+            status: 'confirmed',
+            limit: 50
         });
 
-        const arrivals = reservations.filter(r => r.check_in_date === today);
+        const arrivals = reservations.filter(r => r.check_in_date === today && r.status === 'confirmed');
 
         container.innerHTML = '';
         if (arrivals.length === 0) {
@@ -119,11 +121,13 @@ async function loadDeparturesToday() {
     try {
         const today = new Date().toISOString().split('T')[0];
         const reservations = await InnDesk.api.reservations.getAll({
-            reservation_status: 'checked_in',
-            limit: 100
+            start: today,
+            end: today,
+            status: 'checked_in',
+            limit: 50
         });
 
-        const departures = reservations.filter(r => r.check_out_date === today);
+        const departures = reservations.filter(r => r.check_out_date === today && r.status === 'checked_in');
 
         container.innerHTML = '';
         if (departures.length === 0) {
@@ -140,18 +144,15 @@ async function loadDeparturesToday() {
 // Load active reservations table
 async function loadActiveReservations() {
     try {
-        const [confirmed, checkedIn] = await Promise.all([
-            InnDesk.api.reservations.getAll({ reservation_status: 'confirmed', limit: 100 }),
-            InnDesk.api.reservations.getAll({ reservation_status: 'checked_in', limit: 100 })
-        ]);
-        const active = [...confirmed, ...checkedIn]
-            .sort((a, b) => new Date(a.check_in_date) - new Date(b.check_in_date))
-            .slice(0, 8);
+        const reservations = await InnDesk.api.reservations.getAll({
+            limit: 8,
+            status: 'confirmed,checked_in'
+        });
 
         const tbody = document.querySelector('#reservationsTable tbody');
         tbody.innerHTML = '';
 
-        if (active.length === 0) {
+        if (reservations.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center" style="color: var(--text-muted); font-style: italic;">
@@ -160,19 +161,18 @@ async function loadActiveReservations() {
                 </tr>
             `;
         } else {
-            active.forEach(reservation => {
+            reservations
+                .sort((a, b) => new Date(a.check_in_date) - new Date(b.check_in_date))
+                .forEach(reservation => {
                     const row = document.createElement('tr');
                     const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
-                    const amount = reservation.total_amount != null
-                        ? InnDesk.utils.formatCurrency(reservation.total_amount)
-                        : '—';
                     row.innerHTML = `
                         <td>${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}</td>
                         <td>Chambre ${reservation.room?.number || '?'}</td>
                         <td>${InnDesk.utils.formatShortDate(reservation.check_in_date)}</td>
                         <td>${InnDesk.utils.formatShortDate(reservation.check_out_date)}</td>
                         <td></td>
-                        <td>${amount}</td>
+                        <td>${InnDesk.utils.formatCurrency(reservation.total_amount)}</td>
                     `;
                     row.cells[4].appendChild(statusBadge);
                     tbody.appendChild(row);

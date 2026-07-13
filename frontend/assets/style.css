@@ -649,8 +649,41 @@ body {
   padding: var(--space-4);
 }
 
+/* Hamburger button — caché sur desktop */
+.btn-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2);
+  color: var(--text-primary);
+  border-radius: var(--border-radius);
+  margin-right: var(--space-3);
+}
+.btn-hamburger:hover {
+  background-color: var(--bg-secondary);
+}
+
+/* Overlay semi-transparent derrière le tiroir */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 19;
+}
+.sidebar-overlay.show {
+  display: block;
+}
+
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .btn-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .app-layout {
     grid-template-areas: 
       "topbar"

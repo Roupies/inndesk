@@ -17,22 +17,10 @@ async function setupUser() {
     }
 }
 
-async function loadUsers() {
-    try {
-        const users = await apiFetch('/users/');
-        setUsers(users);
-    } catch (_) {
-        setUsers([]);
-    }
-}
-
 // Initialize page
 async function initHousekeeping() {
     // Set up user first
     await setupUser();
-
-    // Load users for assignment (best-effort — 403 for non-admins, silently ignored)
-    await loadUsers();
     
     // Load initial data
     await loadHousekeepingData();
@@ -65,16 +53,6 @@ async function initHousekeeping() {
         themeIconDark.style.display = newTheme === 'dark' ? 'none' : 'block';
     });
     
-    // Assignment filter bar
-    document.getElementById('assignFilterBar').addEventListener('click', (e) => {
-        const btn = e.target.closest('.assign-filter-btn');
-        if (!btn) return;
-        document.querySelectorAll('.assign-filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        setAssignmentFilter(btn.dataset.filter);
-        renderHousekeepingContent();
-    });
-
     // Initialize Lucide icons
     lucide.createIcons();
 }

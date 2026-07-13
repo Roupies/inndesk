@@ -53,35 +53,6 @@ async function handleStatusChange(roomId, newStatus) {
     }
 }
 
-function handleAssignRoom(roomId, userId) {
-    assignRoom(roomId, userId);
-    const room = housekeepingState.rooms.find(r => r.id === roomId);
-    const user = housekeepingState.users.find(u => u.id === userId);
-    const card = document.querySelector(`[data-room-id="${roomId}"]`);
-    if (card) {
-        const existing = card.querySelector('.assignment-bar');
-        if (existing) existing.remove();
-        card.appendChild(createAssignmentWidget(room));
-    }
-    if (room && user) showToast(`Chambre ${room.number} assignée à ${user.full_name}`, 'success');
-}
-
-function handleUnassignRoom(roomId) {
-    unassignRoom(roomId);
-    const room = housekeepingState.rooms.find(r => r.id === roomId);
-    const card = document.querySelector(`[data-room-id="${roomId}"]`);
-    if (card) {
-        const existing = card.querySelector('.assignment-bar');
-        if (existing) existing.remove();
-        card.appendChild(createAssignmentWidget(room));
-    }
-    if (room) showToast(`Chambre ${room.number} désassignée`, 'success');
-
-    if (housekeepingState.assignmentFilter === 'assigned') {
-        renderHousekeepingContent();
-    }
-}
-
 function updateRoomCardStatus(roomCard, newStatus) {
     // Update card class
     roomCard.className = `room-card status-${newStatus}`;

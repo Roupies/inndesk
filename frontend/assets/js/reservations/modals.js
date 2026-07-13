@@ -143,188 +143,94 @@ function closeStatusChangeModal() {
     selectedReservation = null;
 }
 
-let _drawerEscapeHandler = null;
-let _drawerOpener = null;
+function openDetailModal(reservation) {
+    const modal = document.getElementById('detailReservationModal');
+    const title = document.getElementById('detailModalTitle');
+    const grid = document.getElementById('detailGrid');
 
-function openReservationDrawer(reservation) {
-    _drawerOpener = document.activeElement;
+    title.textContent = `Réservation #${reservation.id}`;
 
-    const drawer = document.getElementById('reservationDrawer');
-    const overlay = document.getElementById('drawerOverlay');
     const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
 
-    document.getElementById('drawerResId').textContent = reservation.id;
+    grid.innerHTML = `
+        <div class="detail-item">
+            <div class="detail-label">Client</div>
+            <div class="detail-value">${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Email</div>
+            <div class="detail-value">${reservation.client?.email || '—'}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Téléphone</div>
+            <div class="detail-value">${reservation.client?.phone || '—'}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Catégorie</div>
+            <div class="detail-value">${reservation.room_type?.name || 'Type inconnu'} (${reservation.room_type?.price_per_night ? InnDesk.utils.formatCurrency(reservation.room_type.price_per_night) + '/nuit' : ''})</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Chambre</div>
+            <div class="detail-value">${reservation.room?.number ? 'N°' + reservation.room.number : 'Non assignée'}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Étage</div>
+            <div class="detail-value">${reservation.room?.floor || '—'}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Arrivée</div>
+            <div class="detail-value">${InnDesk.utils.formatDate(reservation.check_in_date)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Départ</div>
+            <div class="detail-value">${InnDesk.utils.formatDate(reservation.check_out_date)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Nuits</div>
+            <div class="detail-value">${nights}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Adultes</div>
+            <div class="detail-value">${reservation.adults}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Enfants</div>
+            <div class="detail-value">${reservation.children}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Statut</div>
+            <div class="detail-value"></div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Montant</div>
+            <div class="detail-value">${reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—'}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Créée le</div>
+            <div class="detail-value">${InnDesk.utils.formatDateTime(reservation.created_at)}</div>
+        </div>
+    `;
 
-    const body = document.getElementById('drawerBody');
-    body.innerHTML = '';
-
-    // Section: Statut
-    const statusSection = document.createElement('div');
+    // Add status badge to detail
     const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
-    statusBadge.style.cssText = 'font-size: var(--text-base); padding: var(--space-2) var(--space-4);';
-    statusSection.style.textAlign = 'center';
-    statusSection.appendChild(statusBadge);
-    body.appendChild(statusSection);
+    grid.querySelector('.detail-item:nth-child(12) .detail-value').appendChild(statusBadge);
 
-    // Section: Client
-    const clientSection = document.createElement('div');
-    clientSection.innerHTML = `
-        <div class="drawer-section-title">Client</div>
-        <div class="drawer-field-grid">
-            <div class="drawer-field">
-                <span class="drawer-field-label">Nom complet</span>
-                <span class="drawer-field-value">${escapeHtml((reservation.client?.first_name || '') + ' ' + (reservation.client?.last_name || 'Client inconnu'))}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Email</span>
-                <span class="drawer-field-value">${escapeHtml(reservation.client?.email) || '—'}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Téléphone</span>
-                <span class="drawer-field-value">${escapeHtml(reservation.client?.phone) || '—'}</span>
-            </div>
-        </div>
-    `;
-    body.appendChild(clientSection);
-
-    // Section: Séjour
-    const staySection = document.createElement('div');
-    staySection.innerHTML = `
-        <div class="drawer-section-title">Séjour</div>
-        <div class="drawer-field-grid">
-            <div class="drawer-field">
-                <span class="drawer-field-label">Chambre</span>
-                <span class="drawer-field-value">${reservation.room?.number ? 'N°' + escapeHtml(reservation.room.number) : 'Non assignée'}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Catégorie</span>
-                <span class="drawer-field-value">${reservation.room_type?.name || 'Type inconnu'}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Arrivée</span>
-                <span class="drawer-field-value">${InnDesk.utils.formatDate(reservation.check_in_date)}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Départ</span>
-                <span class="drawer-field-value">${InnDesk.utils.formatDate(reservation.check_out_date)}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Nuits</span>
-                <span class="drawer-field-value">${nights}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Adultes</span>
-                <span class="drawer-field-value">${reservation.adults}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Enfants</span>
-                <span class="drawer-field-value">${reservation.children}</span>
-            </div>
-        </div>
-    `;
-    body.appendChild(staySection);
-
-    // Section: Facturation
-    const billingSection = document.createElement('div');
-    billingSection.innerHTML = `
-        <div class="drawer-section-title">Facturation</div>
-        <div class="drawer-field-grid">
-            <div class="drawer-field">
-                <span class="drawer-field-label">Montant total</span>
-                <span class="drawer-field-value">${reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—'}</span>
-            </div>
-            <div class="drawer-field">
-                <span class="drawer-field-label">Prix / nuit</span>
-                <span class="drawer-field-value">${reservation.room_type?.price_per_night ? InnDesk.utils.formatCurrency(reservation.room_type.price_per_night) : '—'}</span>
-            </div>
-        </div>
-    `;
-    body.appendChild(billingSection);
-
-    // Section: Notes
+    // Add notes if present
     if (reservation.notes) {
-        const notesSection = document.createElement('div');
-        notesSection.innerHTML = `
-            <div class="drawer-section-title">Notes</div>
-            <p style="font-size: var(--text-sm); color: var(--text); margin: 0;">${escapeHtml(reservation.notes)}</p>
+        const notesItem = document.createElement('div');
+        notesItem.className = 'detail-item full-width';
+        notesItem.innerHTML = `
+            <div class="detail-label">Notes</div>
+            <div class="detail-value">${reservation.notes}</div>
         `;
-        body.appendChild(notesSection);
+        grid.appendChild(notesItem);
     }
 
-    // Actions
-    const actionsEl = document.getElementById('drawerActions');
-    actionsEl.innerHTML = '';
-
-    const statusBtn = document.createElement('button');
-    statusBtn.className = 'btn btn-primary';
-    statusBtn.textContent = 'Changer de statut';
-    statusBtn.onclick = () => {
-        closeReservationDrawer();
-        openStatusChangeModal(reservation);
-    };
-    actionsEl.appendChild(statusBtn);
-
-    if (reservation.status === 'confirmed' && !reservation.room_id) {
-        const assignBtn = document.createElement('button');
-        assignBtn.className = 'btn btn-secondary';
-        assignBtn.textContent = 'Assigner une chambre';
-        assignBtn.onclick = () => {
-            closeReservationDrawer();
-            openAssignRoomModal(reservation);
-        };
-        actionsEl.appendChild(assignBtn);
-    }
-
-    // Focus trap handler
-    const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-    function trapFocus(e) {
-        if (e.key !== 'Tab') return;
-        const focusable = Array.from(drawer.querySelectorAll(focusableSelectors)).filter(el => !el.disabled);
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-            if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-        } else {
-            if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
-    }
-
-    function onKeydown(e) {
-        if (e.key === 'Escape') closeReservationDrawer();
-        trapFocus(e);
-    }
-
-    if (_drawerEscapeHandler) document.removeEventListener('keydown', _drawerEscapeHandler);
-    _drawerEscapeHandler = onKeydown;
-    document.addEventListener('keydown', _drawerEscapeHandler);
-
-    overlay.classList.add('open');
-    drawer.classList.add('open');
-    document.body.style.overflow = 'hidden';
-
-    lucide.createIcons();
-
-    document.getElementById('drawerCloseBtn').focus();
+    modal.classList.add('show');
 }
 
-function closeReservationDrawer() {
-    const drawer = document.getElementById('reservationDrawer');
-    const overlay = document.getElementById('drawerOverlay');
-
-    drawer.classList.remove('open');
-    overlay.classList.remove('open');
-    document.body.style.overflow = '';
-
-    if (_drawerEscapeHandler) {
-        document.removeEventListener('keydown', _drawerEscapeHandler);
-        _drawerEscapeHandler = null;
-    }
-
-    if (_drawerOpener && typeof _drawerOpener.focus === 'function') {
-        _drawerOpener.focus();
-        _drawerOpener = null;
-    }
+function closeDetailModal() {
+    document.getElementById('detailReservationModal').classList.remove('show');
 }
 
 // Delete confirmation

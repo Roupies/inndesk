@@ -52,20 +52,20 @@ function renderClientsTable() {
         return;
     }
 
-    tableBody.innerHTML = filteredClients.map((client) => `
-        <tr class="client-row-clickable" data-client-id="${client.id}">
+    tableBody.innerHTML = filteredClients.map((client, index) => `
+        <tr>
             <td>${client.id}</td>
             <td>
-                <div style="font-weight: 500;">${escapeHtml(getFullName(client))}</div>
+                <div style="font-weight: 500;">${getFullName(client)}</div>
             </td>
-            <td>${escapeHtml(client.email) || '-'}</td>
-            <td>${escapeHtml(client.phone) || '-'}</td>
-            <td>${escapeHtml(client.nationality) || '-'}</td>
-            <td>-</td>
-            <td>0</td>
+            <td>${client.email || '-'}</td>
+            <td>${client.phone || '-'}</td>
+            <td>${client.nationality || '-'}</td>
+            <td>-</td> <!-- Last stay - we'll populate this later -->
+            <td>0</td> <!-- Reservation count - we'll populate this later -->
             <td>${formatDate(client.created_at)}</td>
             <td>
-                <div class="action-buttons" onclick="event.stopPropagation()">
+                <div class="action-buttons">
                     <button class="btn btn-ghost btn-sm" onclick="openDetailModal(${client.id})" title="Voir les détails">
                         <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
                     </button>
@@ -100,94 +100,28 @@ function renderNationalityFilter() {
     select.value = currentValue;
 }
 
-function renderClientDrawer(client, reservations) {
-    const body = document.getElementById('drawerBody');
-
-    const gdprDate = client.gdpr_consent_at
-        ? formatDateTime(client.gdpr_consent_at)
-        : (client.gdpr_consent ? 'Oui (date inconnue)' : 'Non');
-
-    const sortedRes = [...reservations].sort(
-        (a, b) => new Date(b.check_in_date) - new Date(a.check_in_date)
-    );
-
-    body.innerHTML = `
-        <div class="drawer-field-grid">
-            <div class="drawer-field">
-                <div class="drawer-field-label">Email</div>
-                <div class="drawer-field-value">${escapeHtml(client.email) || '—'}</div>
-            </div>
-            <div class="drawer-field">
-                <div class="drawer-field-label">Téléphone</div>
-                <div class="drawer-field-value">${escapeHtml(client.phone) || '—'}</div>
-            </div>
-            <div class="drawer-field">
-                <div class="drawer-field-label">Nationalité</div>
-                <div class="drawer-field-value">${escapeHtml(client.nationality) || '—'}</div>
-            </div>
-            <div class="drawer-field">
-                <div class="drawer-field-label">Pièce d'identité</div>
-                <div class="drawer-field-value">${escapeHtml(client.id_document) || '—'}</div>
-            </div>
-            <div class="drawer-field">
-                <div class="drawer-field-label">Consentement RGPD</div>
-                <div class="drawer-field-value">${gdprDate}</div>
-            </div>
-            <div class="drawer-field">
-                <div class="drawer-field-label">Client depuis</div>
-                <div class="drawer-field-value">${formatDate(client.created_at)}</div>
-            </div>
-        </div>
-
-        <h3 class="drawer-section-title">Historique séjours (${sortedRes.length})</h3>
-        <div id="drawerReservationsList">
-            ${sortedRes.length === 0
-                ? `<p style="color: var(--text-muted); font-style: italic; font-size: var(--text-sm);">Aucune réservation.</p>`
-                : sortedRes.map(r => {
-                    const roomLabel = r.room?.number ? `Chambre ${escapeHtml(r.room.number)}` : (r.room_id ? `Chambre #${r.room_id}` : '—');
-                    const amount = r.total_amount != null ? `${parseFloat(r.total_amount).toFixed(2)} €` : '—';
-                    return `
-                        <div class="drawer-reservation-item">
-                            <div>
-                                <div style="font-weight: 500; margin-bottom: var(--space-1);">${roomLabel}</div>
-                                <div style="font-size: var(--text-sm); color: var(--text-muted);">
-                                    ${formatDate(r.check_in_date)} → ${formatDate(r.check_out_date)}
-                                </div>
-                            </div>
-                            <div style="text-align: right; flex-shrink: 0; margin-left: var(--space-4);">
-                                <div style="margin-bottom: var(--space-1);">${getStatusBadge(r.status)}</div>
-                                <div style="font-size: var(--text-sm); color: var(--text-muted);">${amount}</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')
-            }
-        </div>
-    `;
-}
-
 function renderClientDetail(client, reservations) {
     const grid = document.getElementById('detailGrid');
     
     grid.innerHTML = `
         <div class="detail-group">
             <div class="detail-label">Identité</div>
-            <div class="detail-value">${escapeHtml(getFullName(client))}</div>
+            <div class="detail-value">${getFullName(client)}</div>
         </div>
         
         <div class="detail-group">
             <div class="detail-label">Email</div>
-            <div class="detail-value">${escapeHtml(client.email) || 'Non renseigné'}</div>
+            <div class="detail-value">${client.email || 'Non renseigné'}</div>
         </div>
         
         <div class="detail-group">
             <div class="detail-label">Téléphone</div>
-            <div class="detail-value">${escapeHtml(client.phone) || 'Non renseigné'}</div>
+            <div class="detail-value">${client.phone || 'Non renseigné'}</div>
         </div>
         
         <div class="detail-group">
             <div class="detail-label">Nationalité</div>
-            <div class="detail-value">${escapeHtml(client.nationality) || 'Non renseignée'}</div>
+            <div class="detail-value">${client.nationality || 'Non renseignée'}</div>
         </div>
         
         <div class="detail-group">

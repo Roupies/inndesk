@@ -68,10 +68,10 @@ window.SettingsRender = {
         tbody.innerHTML = users.map(user => `
             <tr>
                 <td>
-                    <div style="font-weight: 500;">${escapeHtml(user.full_name)}</div>
+                    <div style="font-weight: 500;">${user.full_name}</div>
                 </td>
                 <td>
-                    <div style="color: var(--text-muted);">${escapeHtml(user.email)}</div>
+                    <div style="color: var(--text-muted);">${user.email}</div>
                 </td>
                 <td>${SettingsUtils.getRoleBadge(user.role)}</td>
                 <td>${SettingsUtils.getStatusBadge(user.is_active)}</td>

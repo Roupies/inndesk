@@ -79,7 +79,7 @@ function createReservationRow(reservation) {
     row.dataset.id = reservation.id;
 
     const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
-    const clientName = escapeHtml(`${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}`);
+    const clientName = `${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}`;
     
     // Determine room display
     let roomDisplay = '';
@@ -127,7 +127,7 @@ function createReservationRow(reservation) {
     detailBtn.className = 'action-btn';
     detailBtn.innerHTML = '<i data-lucide="eye" style="width: 16px; height: 16px;"></i>';
     detailBtn.title = 'Détail';
-    detailBtn.onclick = () => openReservationDrawer(reservation);
+    detailBtn.onclick = () => openDetailModal(reservation);
     actionsDiv.appendChild(detailBtn);
 
     // Status edit button

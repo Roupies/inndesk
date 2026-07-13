@@ -44,50 +44,6 @@ function getStatusIcon(status) {
     return icons[status] || 'circle';
 }
 
-function createAssignmentWidget(room) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'assignment-bar';
-
-    const assignedUser = getAssignedUser(room.id);
-
-    if (assignedUser) {
-        const labelId = `assign-label-${room.id}`;
-        wrapper.innerHTML = `
-            <span class="assignment-label" id="${labelId}">Assigné à :</span>
-            <span class="assignment-chip" aria-labelledby="${labelId}">
-                ${escapeHtml(assignedUser.full_name)}
-                <button class="assignment-chip-remove" aria-label="Désassigner ${escapeHtml(assignedUser.full_name)}" data-room-id="${room.id}" title="Désassigner">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-            </span>
-        `;
-        wrapper.querySelector('.assignment-chip-remove').addEventListener('click', () => {
-            handleUnassignRoom(room.id);
-        });
-    } else if (housekeepingState.users.length > 0) {
-        const selectId = `assign-select-${room.id}`;
-        const label = document.createElement('label');
-        label.className = 'assignment-label';
-        label.setAttribute('for', selectId);
-        label.textContent = 'Assigner :';
-
-        const select = document.createElement('select');
-        select.className = 'assignment-select';
-        select.id = selectId;
-        select.innerHTML = '<option value="">— Choisir —</option>' +
-            housekeepingState.users.map(u => `<option value="${u.id}">${u.full_name}</option>`).join('');
-
-        select.addEventListener('change', () => {
-            if (select.value) handleAssignRoom(room.id, parseInt(select.value));
-        });
-
-        wrapper.appendChild(label);
-        wrapper.appendChild(select);
-    }
-
-    return wrapper;
-}
-
 function createRoomCard(room) {
     const card = document.createElement('div');
     card.className = `room-card status-${room.status}`;
@@ -98,12 +54,12 @@ function createRoomCard(room) {
     
     card.innerHTML = `
         <div class="room-header">
-            <div class="room-number">${escapeHtml(room.number)}</div>
+            <div class="room-number">${room.number}</div>
             <div class="badge badge--${room.status}">${getStatusLabel(room.status)}</div>
         </div>
         <div class="room-info">
-            <div class="room-type">${escapeHtml(room.room_type_name)}</div>
-            ${room.notes ? `<div style="font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1);">${escapeHtml(room.notes)}</div>` : ''}
+            <div class="room-type">${room.room_type_name}</div>
+            ${room.notes ? `<div style="font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1);">${room.notes}</div>` : ''}
         </div>
         <div class="status-controls">
             ${availableStatuses.map(status => 
@@ -122,8 +78,6 @@ function createRoomCard(room) {
             button.onclick = () => handleStatusChange(room.id, status);
         }
     });
-
-    card.appendChild(createAssignmentWidget(room));
     
     return card;
 }
@@ -172,7 +126,6 @@ function renderHousekeepingContent() {
     loadingSkeleton.style.display = 'none';
     contentContainer.style.display = 'block';
     contentContainer.innerHTML = '';
-    document.getElementById('assignFilterBar').style.display = 'flex';
     
     if (housekeepingState.error) {
         contentContainer.innerHTML = `
@@ -189,7 +142,7 @@ function renderHousekeepingContent() {
         return;
     }
     
-    const roomsByFloor = getFilteredRoomsByFloor();
+    const roomsByFloor = getRoomsByFloor();
     const floors = Object.keys(roomsByFloor).map(Number).sort((a, b) => a - b);
     
     if (floors.length === 0) {

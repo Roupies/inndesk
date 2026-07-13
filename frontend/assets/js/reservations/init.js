@@ -44,8 +44,7 @@ document.getElementById('newReservationBtn').addEventListener('click', openCreat
 document.getElementById('createModalCloseBtn').addEventListener('click', closeCreateReservationModal);
 document.getElementById('assignModalCloseBtn').addEventListener('click', closeAssignRoomModal);
 document.getElementById('statusModalCloseBtn').addEventListener('click', closeStatusChangeModal);
-document.getElementById('drawerCloseBtn').addEventListener('click', closeReservationDrawer);
-document.getElementById('drawerOverlay').addEventListener('click', closeReservationDrawer);
+document.getElementById('detailModalCloseBtn').addEventListener('click', closeDetailModal);
 
 // Close modals on outside click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -84,8 +83,6 @@ document.getElementById('logoutButton').addEventListener('click', () => {
 });
 
 // Initialize
-_initCheckInListener();
-initCheckinTab();
 loadData();
 
 // Initialize Lucide icons

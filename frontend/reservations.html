@@ -319,6 +319,7 @@
 <body>
     <div class="app-layout">
         <!-- Sidebar -->
+        <div class="sidebar-overlay"></div>
         <div class="sidebar">
             <a href="/app/dashboard.html" class="nav-logo">InnDesk</a>
             
@@ -387,6 +388,9 @@
 
         <!-- Topbar -->
         <div class="topbar">
+            <button class="btn-hamburger" id="sidebarToggle" aria-label="Menu">
+                <i data-lucide="menu" style="width: 22px; height: 22px;"></i>
+            </button>
             <div>
                 <h1 style="font-size: var(--text-lg); font-weight: 600; margin: 0;">Réservations</h1>
                 <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">Gestion des réservations</p>
@@ -726,5 +730,6 @@
     <script src="./assets/js/reservations/handlers.js"></script>
     <script src="./assets/js/reservations/checkin.js"></script>
     <script src="./assets/js/reservations/init.js"></script>
+    <script src="./assets/js/utils/sidebar.js"></script>
 </body>
 </html>

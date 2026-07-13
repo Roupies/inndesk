@@ -77,12 +77,12 @@ function createRoomCard(room) {
 
     card.innerHTML = `
         <div class="room-card-header">
-            <div class="room-number">Chambre ${escapeHtml(room.number)}</div>
+            <div class="room-number">Chambre ${room.number}</div>
             <div></div>
         </div>
         <div class="room-details">
             <div class="room-detail-item">
-                <strong>${escapeHtml(room.room_type?.name || 'Type inconnu')}</strong>
+                <strong>${room.room_type?.name || 'Type inconnu'}</strong>
             </div>
             <div class="room-detail-item">
                 Étage ${room.floor}

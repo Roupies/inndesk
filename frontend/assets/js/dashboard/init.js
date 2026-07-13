@@ -40,15 +40,6 @@ function updateThemeIcon() {
     }
 }
 
-function updateRefreshLabel() {
-    const label = document.getElementById('lastRefreshLabel');
-    const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    label.textContent = `Actualisé à ${hh}:${mm}`;
-    label.style.display = 'block';
-}
-
 // Load dashboard data
 async function loadDashboardData() {
     try {
@@ -59,7 +50,6 @@ async function loadDashboardData() {
             loadActiveReservations(),
             loadRoomStatus()
         ]);
-        updateRefreshLabel();
     } catch (error) {
         // Error handling is done in individual functions
     }
@@ -80,4 +70,3 @@ document.getElementById('logoutButton').addEventListener('click', () => {
 loadUserInfo();
 updateThemeIcon();
 loadDashboardData();
-setInterval(loadDashboardData, 60000);

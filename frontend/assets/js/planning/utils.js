@@ -1,23 +1,71 @@
 // @file: assets/js/planning/utils.js
+// @depends: state.js
 
-const STATUS_LABEL = {
-    confirmed:   'Confirmée',
-    checked_in:  'En séjour',
-    checked_out: 'Départ',
-    cancelled:   'Annulée',
-    no_show:     'No-show'
-};
-
-function statusLabel(status) {
-    return STATUS_LABEL[status] || status;
+// Normalize date to midnight local time (avoid timezone issues)
+function toLocalMidnight(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
 }
 
-function formatDateFr(isoDate) {
-    if (!isoDate) return '';
-    const [y, m, d] = isoDate.split('-');
-    return `${d}/${m}/${y}`;
+// Format range label: "25/06 – 08/07/2026"
+function formatRangeLabel(startDate) {
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + DAYS_IN_WINDOW - 1);
+
+    const fmt = (d) => {
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}`;
+    };
+    const year = endDate.getFullYear();
+    return `${fmt(startDate)} – ${fmt(endDate)}/${year}`;
 }
 
-function nightsCount(checkIn, checkOut) {
-    return diffDays(fromYMD(checkIn), fromYMD(checkOut));
+// Check if date is today
+function isTodayDate(date) {
+    const today = toLocalMidnight(new Date());
+    return toLocalMidnight(date).getTime() === today.getTime();
+}
+
+// Check if date is a weekend
+function isWeekendDate(date) {
+    const day = new Date(date).getDay();
+    return day === 0 || day === 6;
+}
+
+// Generate the 14-day window starting from currentWindowStart
+function getWindowDays() {
+    const days = [];
+    for (let i = 0; i < DAYS_IN_WINDOW; i++) {
+        const d = new Date(currentWindowStart);
+        d.setDate(d.getDate() + i);
+        d.setHours(0, 0, 0, 0);
+        days.push(d);
+    }
+    return days;
+}
+
+// Short day label: "Lun\n25"
+function getDayLabel(date) {
+    const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    return dayNames[date.getDay()] + '\n' + date.getDate();
+}
+
+// Check if a reservation occupies a given day cell
+function reservationOverlapsDay(reservation, day) {
+    const checkIn = toLocalMidnight(new Date(reservation.check_in_date));
+    const checkOut = toLocalMidnight(new Date(reservation.check_out_date));
+    const dayStart = toLocalMidnight(day);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+    return checkIn < dayEnd && checkOut > dayStart;
+}
+
+// Update the range label in the DOM and URL hash
+function updateRangeLabel() {
+    const label = formatRangeLabel(currentWindowStart);
+    document.getElementById('weekLabel').textContent = label;
+    const hashDate = currentWindowStart.toISOString().split('T')[0];
+    window.location.hash = hashDate;
 }

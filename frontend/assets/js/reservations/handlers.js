@@ -58,8 +58,8 @@ document.getElementById('createReservationForm').addEventListener('submit', asyn
             const clientData = {
                 first_name: document.getElementById('newClientFirstName').value,
                 last_name: document.getElementById('newClientLastName').value,
-                email: document.getElementById('newClientEmail').value || null,
-                phone: document.getElementById('newClientPhone').value || null
+                email: document.getElementById('newClientEmail').value,
+                phone: document.getElementById('newClientPhone').value
             };
             
             const newClient = await InnDesk.api.clients.create(clientData);
@@ -91,24 +91,6 @@ document.getElementById('createReservationForm').addEventListener('submit', asyn
     } catch (error) {
         showToast(error.detail || 'Erreur lors de la création', 'error');
     }
-});
-
-document.getElementById('exportCsvReservationsBtn').addEventListener('click', () => {
-    const columns = [
-        { header: 'ID',        value: r => r.id },
-        { header: 'Client',    value: r => `${r.client?.first_name || ''} ${r.client?.last_name || ''}`.trim() },
-        { header: 'Chambre',   value: r => r.room?.number || (r.room_id ? `#${r.room_id}` : '') },
-        { header: 'Type',      value: r => r.room_type?.name || '' },
-        { header: 'Arrivée',   value: r => r.check_in_date || '' },
-        { header: 'Départ',    value: r => r.check_out_date || '' },
-        { header: 'Nuits',     value: r => calculateNights(r.check_in_date, r.check_out_date) },
-        { header: 'Adultes',   value: r => r.adults ?? '' },
-        { header: 'Enfants',   value: r => r.children ?? '' },
-        { header: 'Montant HT',value: r => r.total_amount != null ? r.total_amount : '' },
-        { header: 'Statut',    value: r => r.status || '' },
-    ];
-    const csv = buildCsv(getFilteredReservations(), columns);
-    downloadCsv(csv, `reservations_${todayIso()}.csv`);
 });
 
 document.getElementById('statusChangeForm').addEventListener('submit', async (e) => {

@@ -12,42 +12,24 @@ function closeCreateClientModal() {
 }
 
 async function openDetailModal(clientId) {
-    const drawer = document.getElementById('clientDrawer');
-    const backdrop = document.getElementById('clientDrawerBackdrop');
-    const body = document.getElementById('drawerBody');
-    const title = document.getElementById('drawerTitle');
-    const editBtn = document.getElementById('drawerEditBtn');
-
-    title.textContent = 'Chargement...';
-    body.innerHTML = '<div class="drawer-spinner">Chargement...</div>';
-    editBtn.onclick = null;
-
-    drawer.classList.add('open');
-    backdrop.classList.add('open');
-    backdrop.removeAttribute('aria-hidden');
-
     try {
-        const [client, reservations] = await Promise.all([
-            InnDesk.api.clients.getById(clientId),
-            InnDesk.api.clients.getReservations(clientId)
-        ]);
-
+        const client = await InnDesk.api.clients.getById(clientId);
+        const reservations = await InnDesk.api.clients.getReservations(clientId);
+        
         selectedClient = client;
-        title.textContent = getFullName(client);
-        editBtn.onclick = () => { closeDetailModal(); openEditModal(client.id); };
-
-        renderClientDrawer(client, reservations);
+        document.getElementById('detailModalTitle').textContent = `${getFullName(client)}`;
+        
+        renderClientDetail(client, reservations);
+        
+        document.getElementById('detailClientModal').style.display = 'flex';
         lucide.createIcons();
     } catch (error) {
-        body.innerHTML = `<p style="color: var(--color-maintenance); padding: var(--space-4);">Erreur lors du chargement.</p>`;
         showToast(error.detail || 'Erreur lors du chargement des détails', 'error');
     }
 }
 
 function closeDetailModal() {
-    document.getElementById('clientDrawer').classList.remove('open');
-    document.getElementById('clientDrawerBackdrop').classList.remove('open');
-    document.getElementById('clientDrawerBackdrop').setAttribute('aria-hidden', 'true');
+    document.getElementById('detailClientModal').style.display = 'none';
     selectedClient = null;
 }
 
@@ -97,16 +79,13 @@ document.addEventListener('click', (e) => {
         const modal = e.target;
         if (modal.id === 'createClientModal') closeCreateClientModal();
         else if (modal.id === 'editClientModal') closeEditClientModal();
+        else if (modal.id === 'detailClientModal') closeDetailModal();
         else if (modal.id === 'deleteClientModal') closeDeleteClientModal();
     }
 });
 
-// Drawer close buttons and backdrop
-document.getElementById('drawerCloseBtn').addEventListener('click', closeDetailModal);
-document.getElementById('drawerCloseFooterBtn').addEventListener('click', closeDetailModal);
-document.getElementById('clientDrawerBackdrop').addEventListener('click', closeDetailModal);
-
 // Close buttons
 document.getElementById('createModalCloseBtn').addEventListener('click', closeCreateClientModal);
 document.getElementById('editModalCloseBtn').addEventListener('click', closeEditClientModal);
+document.getElementById('detailModalCloseBtn').addEventListener('click', closeDetailModal);
 document.getElementById('deleteModalCloseBtn').addEventListener('click', closeDeleteClientModal);
