@@ -4,6 +4,27 @@
 let checkinReservations = [];
 let checkinSearchTerm = '';
 
+function setCheckinTableMessage(tbody, message, { color = '', italic = false } = {}) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.style.padding = 'var(--space-8)';
+    cell.style.textAlign = 'center';
+    if (color) cell.style.color = color;
+    if (italic) cell.style.fontStyle = 'italic';
+    cell.textContent = message;
+    row.appendChild(cell);
+    tbody.replaceChildren(row);
+}
+
+function appendRoomOption(select, value, label, roomNumber = '') {
+    const option = document.createElement('option');
+    option.value = String(value ?? '');
+    option.textContent = label;
+    if (roomNumber !== '') option.dataset.number = String(roomNumber);
+    select.appendChild(option);
+}
+
 function initCheckinTab() {
     document.getElementById('tabReservations').addEventListener('click', () => switchTab('reservations'));
     document.getElementById('tabCheckin').addEventListener('click', () => {
@@ -31,7 +52,7 @@ function switchTab(tab) {
 
 async function loadCheckinList() {
     const tbody = document.getElementById('checkinTbody');
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: var(--space-8); color: var(--text-muted);">Chargement...</td></tr>`;
+    setCheckinTableMessage(tbody, 'Chargement...', { color: 'var(--text-muted)' });
 
     try {
         const today = new Date().toISOString().split('T')[0];
@@ -42,7 +63,9 @@ async function loadCheckinList() {
         checkinReservations = data.filter(r => r.check_in_date <= today);
         renderCheckinList();
     } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: var(--space-8); color: var(--color-maintenance);">Erreur lors du chargement</td></tr>`;
+        setCheckinTableMessage(tbody, 'Erreur lors du chargement', {
+            color: 'var(--color-maintenance)'
+        });
     }
 }
 
@@ -56,11 +79,14 @@ function renderCheckinList() {
     });
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: var(--space-8); color: var(--text-muted); font-style: italic;">Aucune arrivée en attente</td></tr>`;
+        setCheckinTableMessage(tbody, 'Aucune arrivée en attente', {
+            color: 'var(--text-muted)',
+            italic: true
+        });
         return;
     }
 
-    tbody.innerHTML = '';
+    tbody.replaceChildren();
     filtered.forEach(r => {
         const row = buildCheckinRow(r);
         tbody.appendChild(row);
@@ -75,19 +101,31 @@ function buildCheckinRow(r) {
 
     const clientName = `${r.client?.first_name || ''} ${r.client?.last_name || 'Client inconnu'}`;
     const roomTypeName = r.room_type?.name || '—';
-    const roomDisplay = r.room ? `N°${r.room.number}` : '<span style="color: var(--text-muted); font-style: italic;">Non assignée</span>';
+    const clientCell = document.createElement('td');
+    clientCell.textContent = clientName;
 
-    row.innerHTML = `
-        <td>${clientName}</td>
-        <td>${roomTypeName}</td>
-        <td>${roomDisplay}</td>
-        <td>${InnDesk.utils.formatDate(r.check_in_date)}</td>
-        <td>${InnDesk.utils.formatDate(r.check_out_date)}</td>
-        <td class="checkin-action-cell"></td>
-    `;
+    const roomTypeCell = document.createElement('td');
+    roomTypeCell.textContent = roomTypeName;
 
-    const actionCell = row.querySelector('.checkin-action-cell');
+    const roomCell = document.createElement('td');
+    if (r.room) {
+        roomCell.textContent = `N°${r.room.number}`;
+    } else {
+        roomCell.style.color = 'var(--text-muted)';
+        roomCell.style.fontStyle = 'italic';
+        roomCell.textContent = 'Non assignée';
+    }
+
+    const checkInCell = document.createElement('td');
+    checkInCell.textContent = InnDesk.utils.formatDate(r.check_in_date);
+
+    const checkOutCell = document.createElement('td');
+    checkOutCell.textContent = InnDesk.utils.formatDate(r.check_out_date);
+
+    const actionCell = document.createElement('td');
+    actionCell.className = 'checkin-action-cell';
     actionCell.appendChild(buildCheckinAction(r, row));
+    row.append(clientCell, roomTypeCell, roomCell, checkInCell, checkOutCell, actionCell);
 
     return row;
 }
@@ -120,7 +158,7 @@ function buildRoomSelectorAction(r, row) {
 
     const select = document.createElement('select');
     select.id = selectId;
-    select.innerHTML = '<option value="">Chargement...</option>';
+    appendRoomOption(select, '', 'Chargement...');
     select.disabled = true;
 
     const btn = document.createElement('button');
@@ -133,12 +171,20 @@ function buildRoomSelectorAction(r, row) {
         r.check_in_date,
         r.check_out_date
     ).then(rooms => {
+        select.replaceChildren();
         if (rooms.length === 0) {
-            select.innerHTML = '<option value="">Aucune chambre dispo</option>';
+            appendRoomOption(select, '', 'Aucune chambre dispo');
             return;
         }
-        select.innerHTML = '<option value="">Choisir...</option>' +
-            rooms.map(rm => `<option value="${rm.id}" data-number="${rm.number}">N°${rm.number} — Étage ${rm.floor}</option>`).join('');
+        appendRoomOption(select, '', 'Choisir...');
+        rooms.forEach(room => {
+            appendRoomOption(
+                select,
+                room.id,
+                `N°${room.number} — Étage ${room.floor}`,
+                room.number
+            );
+        });
         select.disabled = false;
 
         select.addEventListener('change', () => {
@@ -162,7 +208,8 @@ function buildRoomSelectorAction(r, row) {
             }
         });
     }).catch(() => {
-        select.innerHTML = '<option value="">Erreur de chargement</option>';
+        select.replaceChildren();
+        appendRoomOption(select, '', 'Erreur de chargement');
     });
 
     wrapper.appendChild(label);

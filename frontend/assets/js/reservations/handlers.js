@@ -58,8 +58,8 @@ document.getElementById('createReservationForm').addEventListener('submit', asyn
             const clientData = {
                 first_name: document.getElementById('newClientFirstName').value,
                 last_name: document.getElementById('newClientLastName').value,
-                email: document.getElementById('newClientEmail').value,
-                phone: document.getElementById('newClientPhone').value
+                email: document.getElementById('newClientEmail').value.trim() || null,
+                phone: document.getElementById('newClientPhone').value.trim() || null
             };
             
             const newClient = await InnDesk.api.clients.create(clientData);

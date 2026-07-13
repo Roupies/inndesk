@@ -10,47 +10,26 @@ function openRoomModal(room) {
 
     modalTitle.textContent = `Chambre ${room.number}`;
 
-    // Populate room info
-    roomInfoGrid.innerHTML = `
-        <div class="room-info-item">
-            <div class="room-info-label">Numéro</div>
-            <div class="room-info-value">${room.number}</div>
-        </div>
-        <div class="room-info-item">
-            <div class="room-info-label">Étage</div>
-            <div class="room-info-value">${room.floor}</div>
-        </div>
-        <div class="room-info-item">
-            <div class="room-info-label">Type</div>
-            <div class="room-info-value">${room.room_type?.name || 'Type inconnu'}</div>
-        </div>
-        <div class="room-info-item">
-            <div class="room-info-label">Statut</div>
-            <div class="room-info-value"></div>
-        </div>
-        <div class="room-info-item">
-            <div class="room-info-label">Prix/nuit</div>
-            <div class="room-info-value">${InnDesk.utils.formatCurrency(room.room_type?.price_per_night || 0)}</div>
-        </div>
-        <div class="room-info-item">
-            <div class="room-info-label">Capacité max</div>
-            <div class="room-info-value">${room.room_type?.max_occupancy || 0} personne${(room.room_type?.max_occupancy || 0) > 1 ? 's' : ''}</div>
-        </div>
-    `;
-
-    // Add status badge
-    const statusBadge = InnDesk.utils.createStatusBadge(room.status);
-    roomInfoGrid.querySelector('.room-info-item:nth-child(4) .room-info-value').appendChild(statusBadge);
+    roomInfoGrid.replaceChildren();
+    const occupancy = room.room_type?.max_occupancy || 0;
+    [
+        ['Numéro', room.number],
+        ['Étage', room.floor],
+        ['Type', room.room_type?.name || 'Type inconnu'],
+        ['Statut', InnDesk.utils.createStatusBadge(room.status)],
+        ['Prix/nuit', InnDesk.utils.formatCurrency(room.room_type?.price_per_night || 0)],
+        ['Capacité max', `${occupancy} personne${occupancy > 1 ? 's' : ''}`]
+    ].forEach(([label, value]) => roomInfoGrid.appendChild(createRoomInfoItem(label, value)));
 
     // Add description if available
     if (room.room_type?.description) {
         const descriptionItem = document.createElement('div');
         descriptionItem.className = 'room-info-item';
         descriptionItem.style.gridColumn = '1 / -1';
-        descriptionItem.innerHTML = `
-            <div class="room-info-label">Description</div>
-            <div class="room-info-value">${room.room_type.description}</div>
-        `;
+        descriptionItem.append(
+            InnDesk.utils.createElement('div', { className: 'room-info-label', text: 'Description' }),
+            InnDesk.utils.createElement('div', { className: 'room-info-value', text: room.room_type.description })
+        );
         roomInfoGrid.appendChild(descriptionItem);
     }
 
@@ -61,40 +40,54 @@ function openRoomModal(room) {
         .slice(0, 3);
 
     if (roomReservations.length === 0) {
-        recentReservationsList.innerHTML = `
-            <div style="text-align: center; color: var(--text-muted); font-style: italic; padding: var(--space-4);">
-                Aucune réservation récente
-            </div>
-        `;
+        const empty = InnDesk.utils.createElement('div', { text: 'Aucune réservation récente' });
+        empty.style.cssText = 'text-align: center; color: var(--text-muted); font-style: italic; padding: var(--space-4);';
+        recentReservationsList.replaceChildren(empty);
     } else {
-        recentReservationsList.innerHTML = '';
+        recentReservationsList.replaceChildren();
         roomReservations.forEach(reservation => {
             const item = document.createElement('div');
             item.className = 'reservation-item';
             
             const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
             
-            item.innerHTML = `
-                <div class="reservation-client">
-                    ${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}
-                </div>
-                <div class="reservation-dates">
-                    ${InnDesk.utils.formatShortDate(reservation.check_in_date)} → ${InnDesk.utils.formatShortDate(reservation.check_out_date)}
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>${InnDesk.utils.formatCurrency(reservation.total_amount || 0)}</span>
-                    <div></div>
-                </div>
-            `;
-            
-            // Add status badge
-            item.querySelector('div:last-child > div').appendChild(statusBadge);
+            const summary = document.createElement('div');
+            summary.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
+            const badgeContainer = document.createElement('div');
+            badgeContainer.appendChild(statusBadge);
+            summary.append(
+                InnDesk.utils.createElement('span', { text: InnDesk.utils.formatCurrency(reservation.total_amount || 0) }),
+                badgeContainer
+            );
+            item.append(
+                InnDesk.utils.createElement('div', {
+                    className: 'reservation-client',
+                    text: `${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}`
+                }),
+                InnDesk.utils.createElement('div', {
+                    className: 'reservation-dates',
+                    text: `${InnDesk.utils.formatShortDate(reservation.check_in_date)} → ${InnDesk.utils.formatShortDate(reservation.check_out_date)}`
+                }),
+                summary
+            );
             
             recentReservationsList.appendChild(item);
         });
     }
 
     modal.classList.add('show');
+}
+
+function createRoomInfoItem(label, value) {
+    const item = InnDesk.utils.createElement('div', { className: 'room-info-item' });
+    const valueElement = InnDesk.utils.createElement('div', { className: 'room-info-value' });
+    if (value instanceof Node) valueElement.appendChild(value);
+    else valueElement.textContent = String(value ?? '');
+    item.append(
+        InnDesk.utils.createElement('div', { className: 'room-info-label', text: label }),
+        valueElement
+    );
+    return item;
 }
 
 function closeRoomModal() {

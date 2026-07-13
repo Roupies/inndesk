@@ -7,19 +7,23 @@ function updateStats() {
     const availableRooms = rooms.filter(r => r.status === 'available').length;
     const maintenanceRooms = rooms.filter(r => r.status === 'maintenance').length;
 
-    document.getElementById('totalRoomsChip').innerHTML = `
-        Total chambres: <strong>${totalRooms}</strong>
-    `;
+    setRoomStat('totalRoomsChip', 'Total chambres: ', totalRooms);
+    setRoomStat('availableRoomsChip', 'Disponibles: ', availableRooms, 'var(--color-available)');
+    setRoomStat('maintenanceRoomsChip', 'En maintenance: ', maintenanceRooms, 'var(--color-maintenance)');
+}
 
-    document.getElementById('availableRoomsChip').innerHTML = `
-        <div class="rooms-stat-dot" style="background: var(--color-available);"></div>
-        Disponibles: <strong>${availableRooms}</strong>
-    `;
-
-    document.getElementById('maintenanceRoomsChip').innerHTML = `
-        <div class="rooms-stat-dot" style="background: var(--color-maintenance);"></div>
-        En maintenance: <strong>${maintenanceRooms}</strong>
-    `;
+function setRoomStat(id, label, value, dotColor) {
+    const chip = document.getElementById(id);
+    if (!chip) return;
+    const children = [];
+    if (dotColor) {
+        const dot = InnDesk.utils.createElement('div', { className: 'rooms-stat-dot' });
+        dot.style.background = dotColor;
+        children.push(dot);
+    }
+    children.push(document.createTextNode(label));
+    children.push(InnDesk.utils.createElement('strong', { text: value }));
+    chip.replaceChildren(...children);
 }
 
 // Populate type filters
@@ -42,16 +46,17 @@ function renderRooms() {
     const grid = document.getElementById('roomsGrid');
     const filteredRooms = getFilteredRooms();
 
+    grid.replaceChildren();
     if (filteredRooms.length === 0) {
-        grid.innerHTML = `
-            <div class="error-message" style="grid-column: 1/-1; text-align: center; padding: var(--space-8); color: var(--text-muted); font-style: italic;">
-                Aucune chambre trouvée avec ces filtres
-            </div>
-        `;
+        const message = InnDesk.utils.createElement('div', {
+            className: 'error-message',
+            text: 'Aucune chambre trouvée avec ces filtres'
+        });
+        message.style.cssText = 'grid-column: 1/-1; text-align: center; padding: var(--space-8); color: var(--text-muted); font-style: italic;';
+        grid.appendChild(message);
         return;
     }
 
-    grid.innerHTML = '';
     filteredRooms.forEach(room => {
         const card = createRoomCard(room);
         grid.appendChild(card);
@@ -75,29 +80,31 @@ function createRoomCard(room) {
 
     const statusBadge = InnDesk.utils.createStatusBadge(room.status);
 
-    card.innerHTML = `
-        <div class="room-card-header">
-            <div class="room-number">Chambre ${room.number}</div>
-            <div></div>
-        </div>
-        <div class="room-details">
-            <div class="room-detail-item">
-                <strong>${room.room_type?.name || 'Type inconnu'}</strong>
-            </div>
-            <div class="room-detail-item">
-                Étage ${room.floor}
-            </div>
-            <div class="room-detail-item">
-                ${InnDesk.utils.formatCurrency(room.room_type?.price_per_night || 0)}/nuit
-            </div>
-            <div class="room-detail-item">
-                ${room.room_type?.max_occupancy || 0} personne${(room.room_type?.max_occupancy || 0) > 1 ? 's' : ''}
-            </div>
-        </div>
-    `;
+    const header = InnDesk.utils.createElement('div', { className: 'room-card-header' });
+    const badgeContainer = document.createElement('div');
+    badgeContainer.appendChild(statusBadge);
+    header.append(
+        InnDesk.utils.createElement('div', { className: 'room-number', text: `Chambre ${room.number}` }),
+        badgeContainer
+    );
 
-    // Add status badge to header
-    card.querySelector('.room-card-header > div:last-child').appendChild(statusBadge);
+    const details = InnDesk.utils.createElement('div', { className: 'room-details' });
+    const type = InnDesk.utils.createElement('div', { className: 'room-detail-item' });
+    type.appendChild(InnDesk.utils.createElement('strong', { text: room.room_type?.name || 'Type inconnu' }));
+    const occupancy = room.room_type?.max_occupancy || 0;
+    details.append(
+        type,
+        InnDesk.utils.createElement('div', { className: 'room-detail-item', text: `Étage ${room.floor}` }),
+        InnDesk.utils.createElement('div', {
+            className: 'room-detail-item',
+            text: `${InnDesk.utils.formatCurrency(room.room_type?.price_per_night || 0)}/nuit`
+        }),
+        InnDesk.utils.createElement('div', {
+            className: 'room-detail-item',
+            text: `${occupancy} personne${occupancy > 1 ? 's' : ''}`
+        })
+    );
+    card.append(header, details);
 
     return card;
 }

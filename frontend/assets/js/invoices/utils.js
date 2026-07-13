@@ -38,8 +38,11 @@ function getPaymentStatusBadge(status) {
         'paid': { text: 'Payée', class: 'badge-green' }
     };
     
-    const config = statusMap[status] || { text: status, class: 'badge-gray' };
-    return `<span class="badge ${config.class}">${config.text}</span>`;
+    const config = statusMap[status] || { text: status || '—', class: 'badge-gray' };
+    const badge = document.createElement('span');
+    badge.className = `badge ${config.class}`;
+    badge.textContent = config.text;
+    return badge;
 }
 
 function getPaymentMethodLabel(method) {
@@ -56,14 +59,21 @@ function showToast(message, type = 'info') {
     // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <div class="toast-content">
-            <span>${message}</span>
-            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">
-                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
-            </button>
-        </div>
-    `;
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+    const text = document.createElement('span');
+    text.textContent = message;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'toast-close';
+    close.setAttribute('aria-label', 'Fermer la notification');
+    const icon = document.createElement('i');
+    icon.setAttribute('data-lucide', 'x');
+    icon.style.cssText = 'width: 14px; height: 14px;';
+    close.appendChild(icon);
+    close.addEventListener('click', () => toast.remove());
+    content.append(text, close);
+    toast.appendChild(content);
     
     // Add to page
     let toastContainer = document.querySelector('.toast-container');

@@ -11,6 +11,14 @@ function getStatusLabel(status) {
     return labels[status] || status;
 }
 
+function createHousekeepingIcon(name, size) {
+    const icon = document.createElement('i');
+    icon.setAttribute('data-lucide', name);
+    icon.style.width = `${size}px`;
+    icon.style.height = `${size}px`;
+    return icon;
+}
+
 function createStatusButton(status, currentStatus, roomId) {
     const isActive = status === currentStatus;
     const isMaintenanceRestricted = status === 'maintenance' && 
@@ -19,10 +27,10 @@ function createStatusButton(status, currentStatus, roomId) {
     
     const button = document.createElement('button');
     button.className = `status-btn ${status}${isActive ? ' active' : ''}`;
-    button.innerHTML = `
-        <i data-lucide="${getStatusIcon(status)}" style="width: 14px; height: 14px;"></i>
-        ${getStatusLabel(status)}
-    `;
+    button.append(
+        createHousekeepingIcon(getStatusIcon(status), 14),
+        document.createTextNode(getStatusLabel(status))
+    );
     
     if (isMaintenanceRestricted) {
         button.disabled = true;
@@ -52,32 +60,31 @@ function createRoomCard(room) {
     // Available statuses for manual update (excluding 'occupied')
     const availableStatuses = ['available', 'dirty', 'cleaning', 'maintenance'];
     
-    card.innerHTML = `
-        <div class="room-header">
-            <div class="room-number">${room.number}</div>
-            <div class="badge badge--${room.status}">${getStatusLabel(room.status)}</div>
-        </div>
-        <div class="room-info">
-            <div class="room-type">${room.room_type_name}</div>
-            ${room.notes ? `<div style="font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1);">${room.notes}</div>` : ''}
-        </div>
-        <div class="status-controls">
-            ${availableStatuses.map(status => 
-                createStatusButton(status, room.status, room.id).outerHTML
-            ).join('')}
-        </div>
-    `;
-    
-    // Re-attach event listeners for buttons
-    const buttons = card.querySelectorAll('.status-btn:not(.active):not([disabled])');
-    buttons.forEach(button => {
-        const status = Array.from(button.classList).find(cls => 
-            availableStatuses.includes(cls) && cls !== 'status-btn'
-        );
-        if (status) {
-            button.onclick = () => handleStatusChange(room.id, status);
-        }
+    const header = InnDesk.utils.createElement('div', { className: 'room-header' });
+    header.append(
+        InnDesk.utils.createElement('div', { className: 'room-number', text: room.number }),
+        InnDesk.utils.createElement('div', {
+            className: `badge badge--${room.status}`,
+            text: getStatusLabel(room.status)
+        })
+    );
+
+    const info = InnDesk.utils.createElement('div', { className: 'room-info' });
+    info.appendChild(InnDesk.utils.createElement('div', {
+        className: 'room-type',
+        text: room.room_type_name || ''
+    }));
+    if (room.notes) {
+        const notes = InnDesk.utils.createElement('div', { text: room.notes });
+        notes.style.cssText = 'font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-1);';
+        info.appendChild(notes);
+    }
+
+    const controls = InnDesk.utils.createElement('div', { className: 'status-controls' });
+    availableStatuses.forEach(status => {
+        controls.appendChild(createStatusButton(status, room.status, room.id));
     });
+    card.append(header, info, controls);
     
     return card;
 }
@@ -85,30 +92,14 @@ function createRoomCard(room) {
 function renderFloorSection(floorNumber, rooms) {
     const section = document.createElement('div');
     section.className = 'floor-section';
-    section.innerHTML = `
-        <h2 class="floor-title">
-            <i data-lucide="building" style="width: 20px; height: 20px;"></i>
-            Étage ${floorNumber}
-        </h2>
-        <div class="rooms-grid">
-            ${rooms.map(room => createRoomCard(room).outerHTML).join('')}
-        </div>
-    `;
-    
-    // Re-attach event listeners
-    const roomCards = section.querySelectorAll('.room-card');
-    roomCards.forEach((card, index) => {
-        const room = rooms[index];
-        const buttons = card.querySelectorAll('.status-btn:not(.active):not([disabled])');
-        buttons.forEach(button => {
-            const status = Array.from(button.classList).find(cls => 
-                ['available', 'dirty', 'cleaning', 'maintenance'].includes(cls)
-            );
-            if (status) {
-                button.onclick = () => handleStatusChange(room.id, status);
-            }
-        });
-    });
+    const title = InnDesk.utils.createElement('h2', { className: 'floor-title' });
+    title.append(
+        createHousekeepingIcon('building', 20),
+        document.createTextNode(`Étage ${floorNumber}`)
+    );
+    const grid = InnDesk.utils.createElement('div', { className: 'rooms-grid' });
+    rooms.forEach(room => grid.appendChild(createRoomCard(room)));
+    section.append(title, grid);
     
     return section;
 }
@@ -125,20 +116,28 @@ function renderHousekeepingContent() {
     
     loadingSkeleton.style.display = 'none';
     contentContainer.style.display = 'block';
-    contentContainer.innerHTML = '';
+    contentContainer.replaceChildren();
     
     if (housekeepingState.error) {
-        contentContainer.innerHTML = `
-            <div class="error-message" style="text-align: center; padding: var(--space-8); color: var(--color-maintenance);">
-                <i data-lucide="alert-circle" style="width: 48px; height: 48px; margin-bottom: var(--space-4);"></i>
-                <h3>Erreur de chargement</h3>
-                <p>${housekeepingState.error}</p>
-                <button class="btn btn-primary" onclick="loadHousekeepingData()" style="margin-top: var(--space-4);">
-                    Réessayer
-                </button>
-            </div>
-        `;
-        lucide.createIcons();
+        const error = InnDesk.utils.createElement('div', { className: 'error-message' });
+        error.style.cssText = 'text-align: center; padding: var(--space-8); color: var(--color-maintenance);';
+        const icon = createHousekeepingIcon('alert-circle', 48);
+        icon.style.marginBottom = 'var(--space-4)';
+        const retry = InnDesk.utils.createElement('button', {
+            className: 'btn btn-primary',
+            text: 'Réessayer',
+            attributes: { type: 'button' }
+        });
+        retry.style.marginTop = 'var(--space-4)';
+        retry.addEventListener('click', loadHousekeepingData);
+        error.append(
+            icon,
+            InnDesk.utils.createElement('h3', { text: 'Erreur de chargement' }),
+            InnDesk.utils.createElement('p', { text: housekeepingState.error }),
+            retry
+        );
+        contentContainer.appendChild(error);
+        if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         return;
     }
     
@@ -146,14 +145,17 @@ function renderHousekeepingContent() {
     const floors = Object.keys(roomsByFloor).map(Number).sort((a, b) => a - b);
     
     if (floors.length === 0) {
-        contentContainer.innerHTML = `
-            <div class="empty-state" style="text-align: center; padding: var(--space-8);">
-                <i data-lucide="bed" style="width: 48px; height: 48px; margin-bottom: var(--space-4); color: var(--text-muted);"></i>
-                <h3>Aucune chambre trouvée</h3>
-                <p>Il n'y a pas de chambres à afficher.</p>
-            </div>
-        `;
-        lucide.createIcons();
+        const empty = InnDesk.utils.createElement('div', { className: 'empty-state' });
+        empty.style.cssText = 'text-align: center; padding: var(--space-8);';
+        const icon = createHousekeepingIcon('bed', 48);
+        icon.style.cssText += 'margin-bottom: var(--space-4); color: var(--text-muted);';
+        empty.append(
+            icon,
+            InnDesk.utils.createElement('h3', { text: 'Aucune chambre trouvée' }),
+            InnDesk.utils.createElement('p', { text: "Il n'y a pas de chambres à afficher." })
+        );
+        contentContainer.appendChild(empty);
+        if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         return;
     }
     
@@ -163,7 +165,7 @@ function renderHousekeepingContent() {
     });
     
     // Initialize Lucide icons
-    lucide.createIcons();
+    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
 }
 
 function showToast(message, type = 'success') {
@@ -171,15 +173,16 @@ function showToast(message, type = 'success') {
     
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <div style="display: flex; align-items: center; gap: var(--space-2);">
-            <i data-lucide="${type === 'success' ? 'check' : 'alert-circle'}" style="width: 16px; height: 16px;"></i>
-            <span>${message}</span>
-        </div>
-    `;
+    const content = document.createElement('div');
+    content.style.cssText = 'display: flex; align-items: center; gap: var(--space-2);';
+    content.append(
+        createHousekeepingIcon(type === 'success' ? 'check' : 'alert-circle', 16),
+        InnDesk.utils.createElement('span', { text: message })
+    );
+    toast.appendChild(content);
     
     container.appendChild(toast);
-    lucide.createIcons();
+    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
     
     // Show toast
     setTimeout(() => toast.classList.add('show'), 100);

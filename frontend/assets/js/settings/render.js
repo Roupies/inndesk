@@ -49,52 +49,68 @@ window.SettingsRender = {
     renderUsersTable(users) {
         const tbody = document.querySelector('#usersTable tbody');
         if (!tbody) return;
-        
+        tbody.replaceChildren();
+
         if (!users || users.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="empty-state">
-                        <div style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
-                            <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: var(--space-4);"></i>
-                            <p>Aucun utilisateur trouvé</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            lucide.createIcons();
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 6;
+            cell.className = 'empty-state';
+            const content = document.createElement('div');
+            content.style.cssText = 'text-align: center; padding: var(--space-8); color: var(--text-muted);';
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', 'users');
+            icon.style.cssText = 'width: 48px; height: 48px; margin-bottom: var(--space-4);';
+            content.append(icon, InnDesk.utils.createElement('p', { text: 'Aucun utilisateur trouvé' }));
+            cell.appendChild(content);
+            row.appendChild(cell);
+            tbody.appendChild(row);
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
             return;
         }
-        
-        tbody.innerHTML = users.map(user => `
-            <tr>
-                <td>
-                    <div style="font-weight: 500;">${user.full_name}</div>
-                </td>
-                <td>
-                    <div style="color: var(--text-muted);">${user.email}</div>
-                </td>
-                <td>${SettingsUtils.getRoleBadge(user.role)}</td>
-                <td>${SettingsUtils.getStatusBadge(user.is_active)}</td>
-                <td>
-                    <div style="color: var(--text-muted); font-size: var(--text-sm);">
-                        ${SettingsUtils.formatDate(user.created_at)}
-                    </div>
-                </td>
-                <td>
-                    <div style="display: flex; gap: var(--space-2);">
-                        <button class="btn btn-sm btn-ghost" onclick="SettingsHandlers.openEditUserModal(${user.id})" title="Modifier">
-                            <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="btn btn-sm btn-ghost" onclick="SettingsHandlers.openResetPasswordModal(${user.id})" title="Réinitialiser mot de passe">
-                            <i data-lucide="key" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="btn btn-sm btn-ghost text-red" onclick="SettingsHandlers.toggleUserStatus(${user.id})" title="${user.is_active ? 'Désactiver' : 'Activer'}" ${user.id === SettingsState.currentUser?.id ? 'disabled' : ''}>
-                            <i data-lucide="${user.is_active ? 'user-x' : 'user-check'}" style="width: 14px; height: 14px;"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.dataset.id = String(user.id);
+
+            const nameCell = document.createElement('td');
+            const name = InnDesk.utils.createElement('div', { text: user.full_name || '' });
+            name.style.fontWeight = '500';
+            nameCell.appendChild(name);
+
+            const emailCell = document.createElement('td');
+            const email = InnDesk.utils.createElement('div', { text: user.email || '' });
+            email.style.color = 'var(--text-muted)';
+            emailCell.appendChild(email);
+
+            const roleCell = document.createElement('td');
+            roleCell.appendChild(SettingsUtils.getRoleBadge(user.role));
+            const statusCell = document.createElement('td');
+            statusCell.appendChild(SettingsUtils.getStatusBadge(user.is_active));
+
+            const dateCell = document.createElement('td');
+            const date = InnDesk.utils.createElement('div', { text: SettingsUtils.formatDate(user.created_at) });
+            date.style.cssText = 'color: var(--text-muted); font-size: var(--text-sm);';
+            dateCell.appendChild(date);
+
+            const actionsCell = document.createElement('td');
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display: flex; gap: var(--space-2);';
+            actions.append(
+                createSettingsAction('edit', 'Modifier', () => SettingsHandlers.openEditUserModal(user.id)),
+                createSettingsAction('key', 'Réinitialiser mot de passe', () => SettingsHandlers.openResetPasswordModal(user.id)),
+                createSettingsAction(
+                    user.is_active ? 'user-x' : 'user-check',
+                    user.is_active ? 'Désactiver' : 'Activer',
+                    () => SettingsHandlers.toggleUserStatus(user.id),
+                    true,
+                    user.id === SettingsState.currentUser?.id
+                )
+            );
+            actionsCell.appendChild(actions);
+            row.append(nameCell, emailCell, roleCell, statusCell, dateCell, actionsCell);
+            tbody.appendChild(row);
+        });
         
         // Re-initialize Lucide icons
         lucide.createIcons();
@@ -154,3 +170,17 @@ window.SettingsRender = {
         }
     }
 };
+
+function createSettingsAction(iconName, label, handler, isDanger = false, disabled = false) {
+    const button = InnDesk.utils.createElement('button', {
+        className: `btn btn-sm btn-ghost${isDanger ? ' text-red' : ''}`,
+        attributes: { type: 'button', title: label, 'aria-label': label }
+    });
+    const icon = document.createElement('i');
+    icon.setAttribute('data-lucide', iconName);
+    icon.style.cssText = 'width: 14px; height: 14px;';
+    button.appendChild(icon);
+    button.disabled = disabled;
+    button.addEventListener('click', handler);
+    return button;
+}

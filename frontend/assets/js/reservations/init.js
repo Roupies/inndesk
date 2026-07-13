@@ -4,12 +4,19 @@
 // Initialize page
 InnDesk.auth.redirectIfNotAuth();
 
+function bindReservationEvent(id, eventName, handler) {
+    const element = document.getElementById(id);
+    if (element) element.addEventListener(eventName, handler);
+}
+
 // Load initial data
 async function loadData() {
     try {
         currentUser = await InnDesk.auth.ensureCurrentUser();
-        document.getElementById('userName').textContent = currentUser?.full_name || 'Utilisateur';
-        document.getElementById('userRole').textContent = currentUser?.role || '';
+        const userName = document.getElementById('userName');
+        const userRole = document.getElementById('userRole');
+        if (userName) userName.textContent = currentUser?.full_name || 'Utilisateur';
+        if (userRole) userRole.textContent = currentUser?.role || '';
 
         const [reservationsData, roomTypesData] = await Promise.all([
             InnDesk.api.reservations.getAll({ limit: 500 }),
@@ -30,21 +37,22 @@ async function loadData() {
 
 // Event listeners for form validation
 ['roomTypeSelect', 'checkInDate', 'checkOutDate', 'adults', 'children'].forEach(id => {
-    document.getElementById(id).addEventListener('change', updateFormState);
-    document.getElementById(id).addEventListener('input', updateFormState);
+    bindReservationEvent(id, 'change', updateFormState);
+    bindReservationEvent(id, 'input', updateFormState);
 });
 
 // Event listeners
-document.getElementById('searchInput').addEventListener('input', renderReservations);
-document.getElementById('statusFilter').addEventListener('change', renderReservations);
-document.getElementById('dateFrom').addEventListener('change', renderReservations);
-document.getElementById('dateTo').addEventListener('change', renderReservations);
+bindReservationEvent('searchInput', 'input', renderReservations);
+bindReservationEvent('statusFilter', 'change', renderReservations);
+bindReservationEvent('dateFrom', 'change', renderReservations);
+bindReservationEvent('dateTo', 'change', renderReservations);
 
-document.getElementById('newReservationBtn').addEventListener('click', openCreateReservationModal);
-document.getElementById('createModalCloseBtn').addEventListener('click', closeCreateReservationModal);
-document.getElementById('assignModalCloseBtn').addEventListener('click', closeAssignRoomModal);
-document.getElementById('statusModalCloseBtn').addEventListener('click', closeStatusChangeModal);
-document.getElementById('detailModalCloseBtn').addEventListener('click', closeDetailModal);
+bindReservationEvent('newReservationBtn', 'click', openCreateReservationModal);
+bindReservationEvent('createModalCloseBtn', 'click', closeCreateReservationModal);
+bindReservationEvent('assignModalCloseBtn', 'click', closeAssignRoomModal);
+bindReservationEvent('statusModalCloseBtn', 'click', closeStatusChangeModal);
+bindReservationEvent('drawerCloseBtn', 'click', closeDetailModal);
+bindReservationEvent('drawerOverlay', 'click', closeDetailModal);
 
 // Close modals on outside click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
@@ -58,32 +66,38 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // Hide dropdowns on outside click
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.client-search-wrapper')) {
-        document.getElementById('clientDropdown').style.display = 'none';
+        const dropdown = document.getElementById('clientDropdown');
+        if (dropdown) dropdown.style.display = 'none';
     }
 });
 
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDetailModal();
+});
+
 // Theme and logout
-document.getElementById('themeToggle').addEventListener('click', () => {
+bindReservationEvent('themeToggle', 'click', () => {
     InnDesk.utils.toggleTheme();
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const lightIcon = document.getElementById('themeIconLight');
     const darkIcon = document.getElementById('themeIconDark');
     
-    if (currentTheme === 'light') {
+    if (currentTheme === 'light' && lightIcon && darkIcon) {
         lightIcon.style.display = 'none';
         darkIcon.style.display = 'block';
-    } else {
+    } else if (lightIcon && darkIcon) {
         lightIcon.style.display = 'block';
         darkIcon.style.display = 'none';
     }
 });
 
-document.getElementById('logoutButton').addEventListener('click', () => {
+bindReservationEvent('logoutButton', 'click', () => {
     InnDesk.api.auth.logout();
 });
 
 // Initialize
 loadData();
+if (typeof initCheckinTab === 'function') initCheckinTab();
 
 // Initialize Lucide icons
 if (typeof lucide !== 'undefined') {

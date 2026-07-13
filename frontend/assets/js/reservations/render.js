@@ -8,22 +8,19 @@ function updateStats() {
     const checkedIn = reservations.filter(r => r.status === 'checked_in').length;
     const cancelled = reservations.filter(r => r.status === 'cancelled').length;
 
-    document.getElementById('totalReservationsCard').innerHTML = `
-        <div class="kpi-value">${total}</div>
-        <div class="kpi-label">Total</div>
-    `;
-    document.getElementById('confirmedReservationsCard').innerHTML = `
-        <div class="kpi-value">${confirmed}</div>
-        <div class="kpi-label">Confirmées</div>
-    `;
-    document.getElementById('checkedInReservationsCard').innerHTML = `
-        <div class="kpi-value">${checkedIn}</div>
-        <div class="kpi-label">En séjour</div>
-    `;
-    document.getElementById('cancelledReservationsCard').innerHTML = `
-        <div class="kpi-value">${cancelled}</div>
-        <div class="kpi-label">Annulées</div>
-    `;
+    setReservationKpi('totalReservationsCard', total, 'Total');
+    setReservationKpi('confirmedReservationsCard', confirmed, 'Confirmées');
+    setReservationKpi('checkedInReservationsCard', checkedIn, 'En séjour');
+    setReservationKpi('cancelledReservationsCard', cancelled, 'Annulées');
+}
+
+function setReservationKpi(id, value, label) {
+    const card = document.getElementById(id);
+    if (!card) return;
+    card.replaceChildren(
+        InnDesk.utils.createElement('div', { className: 'kpi-value', text: value }),
+        InnDesk.utils.createElement('div', { className: 'kpi-label', text: label })
+    );
 }
 
 // Render reservations table
@@ -31,22 +28,27 @@ function renderReservations() {
     const tbody = document.querySelector('#reservationsTable tbody');
     const filteredReservations = getFilteredReservations();
 
+    tbody.replaceChildren();
     if (filteredReservations.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="10" style="text-align: center; padding: var(--space-8); color: var(--text-muted); font-style: italic;">
-                    Aucune réservation trouvée
-                    <br>
-                    <button class="btn btn-primary" style="margin-top: var(--space-3);" onclick="openCreateReservationModal()">
-                        Créer la première réservation
-                    </button>
-                </td>
-            </tr>
-        `;
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 10;
+        cell.style.cssText = 'text-align: center; padding: var(--space-8); color: var(--text-muted); font-style: italic;';
+        const message = document.createTextNode('Aucune réservation trouvée');
+        const lineBreak = document.createElement('br');
+        const button = InnDesk.utils.createElement('button', {
+            className: 'btn btn-primary',
+            text: 'Créer la première réservation',
+            attributes: { type: 'button' }
+        });
+        button.style.marginTop = 'var(--space-3)';
+        button.addEventListener('click', openCreateReservationModal);
+        cell.append(message, lineBreak, button);
+        row.appendChild(cell);
+        tbody.appendChild(row);
         return;
     }
 
-    tbody.innerHTML = '';
     filteredReservations.forEach(reservation => {
         const row = createReservationRow(reservation);
         tbody.appendChild(row);
@@ -81,26 +83,32 @@ function createReservationRow(reservation) {
     const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
     const clientName = `${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}`;
     
-    // Determine room display
-    let roomDisplay = '';
-    if (reservation.room_id) {
-        roomDisplay = reservation.room?.number || '?';
-    } else {
-        roomDisplay = '<span class="badge badge-warning">À assigner</span>';
-    }
+    [
+        `#${reservation.id}`,
+        clientName,
+        reservation.room_type?.name || 'Type inconnu'
+    ].forEach(value => row.appendChild(InnDesk.utils.createElement('td', { text: value })));
 
-    row.innerHTML = `
-        <td>#${reservation.id}</td>
-        <td>${clientName}</td>
-        <td>${reservation.room_type?.name || 'Type inconnu'}</td>
-        <td>${roomDisplay}</td>
-        <td>${InnDesk.utils.formatDate(reservation.check_in_date)}</td>
-        <td>${InnDesk.utils.formatDate(reservation.check_out_date)}</td>
-        <td>${nights}</td>
-        <td></td>
-        <td>${reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—'}</td>
-        <td></td>
-    `;
+    const roomCell = document.createElement('td');
+    if (reservation.room_id) {
+        roomCell.textContent = String(reservation.room?.number || '?');
+    } else {
+        roomCell.appendChild(InnDesk.utils.createElement('span', {
+            className: 'badge badge-warning',
+            text: 'À assigner'
+        }));
+    }
+    row.appendChild(roomCell);
+    [
+        InnDesk.utils.formatDate(reservation.check_in_date),
+        InnDesk.utils.formatDate(reservation.check_out_date),
+        nights
+    ].forEach(value => row.appendChild(InnDesk.utils.createElement('td', { text: value })));
+    row.appendChild(document.createElement('td'));
+    row.appendChild(InnDesk.utils.createElement('td', {
+        text: reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—'
+    }));
+    row.appendChild(document.createElement('td'));
 
     // Add status badge
     const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
@@ -108,56 +116,53 @@ function createReservationRow(reservation) {
 
     // Add actions
     const actionsCell = row.cells[9];
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'actions-cell';
+    const actionSelect = document.createElement('select');
+    actionSelect.className = 'form-input reservation-action-select';
+    actionSelect.setAttribute('aria-label', `Actions pour la réservation ${reservation.id}`);
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Choisir une action…';
+    actionSelect.appendChild(placeholder);
 
-    // Actions based on status and room assignment
+    function addAction(value, label) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        actionSelect.appendChild(option);
+    }
+
+    addAction('detail', 'Voir les détails');
     if (reservation.status === 'confirmed' && !reservation.room_id) {
-        // Show assign room button
-        const assignBtn = document.createElement('button');
-        assignBtn.className = 'action-btn';
-        assignBtn.innerHTML = '<i data-lucide="home" style="width: 16px; height: 16px;"></i>';
-        assignBtn.title = 'Assigner chambre';
-        assignBtn.onclick = () => openAssignRoomModal(reservation);
-        actionsDiv.appendChild(assignBtn);
+        addAction('assign', 'Assigner une chambre');
     }
-
-    // Detail button
-    const detailBtn = document.createElement('button');
-    detailBtn.className = 'action-btn';
-    detailBtn.innerHTML = '<i data-lucide="eye" style="width: 16px; height: 16px;"></i>';
-    detailBtn.title = 'Détail';
-    detailBtn.onclick = () => openDetailModal(reservation);
-    actionsDiv.appendChild(detailBtn);
-
-    // Status edit button
     if (['confirmed', 'checked_in'].includes(reservation.status)) {
-        const statusBtn = document.createElement('button');
-        statusBtn.className = 'action-btn';
-        statusBtn.innerHTML = '<i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>';
-        statusBtn.title = 'Modifier statut';
-        statusBtn.onclick = () => openStatusChangeModal(reservation);
-        actionsDiv.appendChild(statusBtn);
+        addAction('status', 'Changer le statut');
     }
-
-    // Delete button (only for confirmed reservations)
     if (reservation.status === 'confirmed') {
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'action-btn delete';
-        deleteBtn.innerHTML = '<i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>';
-        deleteBtn.title = 'Supprimer';
-        deleteBtn.onclick = () => showDeleteConfirmation(reservation.id, row);
-        actionsDiv.appendChild(deleteBtn);
+        addAction('delete', 'Supprimer la réservation');
     }
 
-    actionsCell.appendChild(actionsDiv);
+    actionSelect.addEventListener('change', () => {
+        const action = actionSelect.value;
+        actionSelect.value = '';
+        if (action === 'detail') openDetailModal(reservation);
+        else if (action === 'assign') openAssignRoomModal(reservation);
+        else if (action === 'status') openStatusChangeModal(reservation);
+        else if (action === 'delete') showDeleteConfirmation(reservation.id, row);
+    });
+
+    actionsCell.appendChild(actionSelect);
     return row;
 }
 
 // Populate room type select
 function populateRoomTypeSelect() {
     const select = document.getElementById('roomTypeSelect');
-    select.innerHTML = '<option value="">Sélectionner une catégorie...</option>';
+    select.replaceChildren();
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Sélectionner une catégorie...';
+    select.appendChild(placeholder);
 
     roomTypes.forEach(type => {
         const option = document.createElement('option');

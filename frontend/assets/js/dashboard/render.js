@@ -18,6 +18,20 @@ function getInitials(firstName, lastName) {
     return f + l || '?';
 }
 
+function setDashboardKpi(id, value, label) {
+    const card = document.getElementById(id);
+    if (!card) return;
+    card.replaceChildren(
+        InnDesk.utils.createElement('div', { className: 'kpi-value', text: value }),
+        InnDesk.utils.createElement('div', { className: 'kpi-label', text: label })
+    );
+}
+
+function setDashboardMessage(container, message, className = 'dashboard-list-empty') {
+    if (!container) return;
+    container.replaceChildren(InnDesk.utils.createElement('p', { className, text: message }));
+}
+
 // Load KPI data
 async function loadKPIs() {
     try {
@@ -39,22 +53,10 @@ async function loadKPIs() {
             res.status === 'checked_in' && res.check_out_date === today
         ).length;
 
-        document.getElementById('availableRoomsCard').innerHTML = `
-            <div class="kpi-value">${availableRooms}</div>
-            <div class="kpi-label">Chambres disponibles</div>
-        `;
-        document.getElementById('arrivalsCard').innerHTML = `
-            <div class="kpi-value">${arrivalsToday}</div>
-            <div class="kpi-label">Arrivées aujourd'hui</div>
-        `;
-        document.getElementById('departuresCard').innerHTML = `
-            <div class="kpi-value">${departuresToday}</div>
-            <div class="kpi-label">Départs aujourd'hui</div>
-        `;
-        document.getElementById('occupancyCard').innerHTML = `
-            <div class="kpi-value">${occupancyRate}%</div>
-            <div class="kpi-label">Taux d'occupation</div>
-        `;
+        setDashboardKpi('availableRoomsCard', availableRooms, 'Chambres disponibles');
+        setDashboardKpi('arrivalsCard', arrivalsToday, "Arrivées aujourd'hui");
+        setDashboardKpi('departuresCard', departuresToday, "Départs aujourd'hui");
+        setDashboardKpi('occupancyCard', `${occupancyRate}%`, "Taux d'occupation");
 
     } catch (error) {
         ['availableRoomsCard', 'arrivalsCard', 'departuresCard', 'occupancyCard'].forEach(id => {
@@ -77,15 +79,23 @@ function renderListItem(reservation, index) {
 
     const badge = InnDesk.utils.createStatusBadge(reservation.status);
 
-    item.innerHTML = `
-        <div class="dashboard-avatar" style="background-color: ${avatarColor};" aria-hidden="true">${initials}</div>
-        <div class="dashboard-list-info">
-            <span class="dashboard-list-name">${firstName} ${lastName}</span>
-            <span class="dashboard-list-room">Chambre ${roomNumber}${roomType ? ' · ' + roomType : ''}</span>
-        </div>
-        <div class="dashboard-list-badge"></div>
-    `;
-    item.querySelector('.dashboard-list-badge').appendChild(badge);
+    const avatar = InnDesk.utils.createElement('div', {
+        className: 'dashboard-avatar',
+        text: initials,
+        attributes: { 'aria-hidden': 'true' }
+    });
+    avatar.style.backgroundColor = avatarColor;
+    const info = InnDesk.utils.createElement('div', { className: 'dashboard-list-info' });
+    info.append(
+        InnDesk.utils.createElement('span', { className: 'dashboard-list-name', text: `${firstName} ${lastName}` }),
+        InnDesk.utils.createElement('span', {
+            className: 'dashboard-list-room',
+            text: `Chambre ${roomNumber}${roomType ? ` · ${roomType}` : ''}`
+        })
+    );
+    const badgeContainer = InnDesk.utils.createElement('div', { className: 'dashboard-list-badge' });
+    badgeContainer.appendChild(badge);
+    item.append(avatar, info, badgeContainer);
     return item;
 }
 
@@ -103,15 +113,15 @@ async function loadArrivalsToday() {
 
         const arrivals = reservations.filter(r => r.check_in_date === today && r.status === 'confirmed');
 
-        container.innerHTML = '';
+        container.replaceChildren();
         if (arrivals.length === 0) {
-            container.innerHTML = '<p class="dashboard-list-empty">Aucune arrivée aujourd\'hui</p>';
+            setDashboardMessage(container, "Aucune arrivée aujourd'hui");
             return;
         }
         arrivals.forEach((res, i) => container.appendChild(renderListItem(res, i)));
 
     } catch (error) {
-        container.innerHTML = '<p class="dashboard-list-empty">Données indisponibles</p>';
+        setDashboardMessage(container, 'Données indisponibles');
     }
 }
 
@@ -129,15 +139,15 @@ async function loadDeparturesToday() {
 
         const departures = reservations.filter(r => r.check_out_date === today && r.status === 'checked_in');
 
-        container.innerHTML = '';
+        container.replaceChildren();
         if (departures.length === 0) {
-            container.innerHTML = '<p class="dashboard-list-empty">Aucun départ aujourd\'hui</p>';
+            setDashboardMessage(container, "Aucun départ aujourd'hui");
             return;
         }
         departures.forEach((res, i) => container.appendChild(renderListItem(res, i)));
 
     } catch (error) {
-        container.innerHTML = '<p class="dashboard-list-empty">Données indisponibles</p>';
+        setDashboardMessage(container, 'Données indisponibles');
     }
 }
 
@@ -150,30 +160,34 @@ async function loadActiveReservations() {
         });
 
         const tbody = document.querySelector('#reservationsTable tbody');
-        tbody.innerHTML = '';
+        tbody.replaceChildren();
 
         if (reservations.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center" style="color: var(--text-muted); font-style: italic;">
-                        Aucune réservation active
-                    </td>
-                </tr>
-            `;
+            const row = document.createElement('tr');
+            const cell = InnDesk.utils.createElement('td', {
+                className: 'text-center',
+                text: 'Aucune réservation active'
+            });
+            cell.colSpan = 6;
+            cell.style.cssText = 'color: var(--text-muted); font-style: italic;';
+            row.appendChild(cell);
+            tbody.appendChild(row);
         } else {
             reservations
                 .sort((a, b) => new Date(a.check_in_date) - new Date(b.check_in_date))
                 .forEach(reservation => {
                     const row = document.createElement('tr');
                     const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
-                    row.innerHTML = `
-                        <td>${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}</td>
-                        <td>Chambre ${reservation.room?.number || '?'}</td>
-                        <td>${InnDesk.utils.formatShortDate(reservation.check_in_date)}</td>
-                        <td>${InnDesk.utils.formatShortDate(reservation.check_out_date)}</td>
-                        <td></td>
-                        <td>${InnDesk.utils.formatCurrency(reservation.total_amount)}</td>
-                    `;
+                    [
+                        `${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}`,
+                        `Chambre ${reservation.room?.number || '?'}`,
+                        InnDesk.utils.formatShortDate(reservation.check_in_date),
+                        InnDesk.utils.formatShortDate(reservation.check_out_date)
+                    ].forEach(value => row.appendChild(InnDesk.utils.createElement('td', { text: value })));
+                    row.appendChild(document.createElement('td'));
+                    row.appendChild(InnDesk.utils.createElement('td', {
+                        text: InnDesk.utils.formatCurrency(reservation.total_amount)
+                    }));
                     row.cells[4].appendChild(statusBadge);
                     tbody.appendChild(row);
                 });
@@ -181,7 +195,14 @@ async function loadActiveReservations() {
 
     } catch (error) {
         const tbody = document.querySelector('#reservationsTable tbody');
-        tbody.innerHTML = `<tr><td colspan="6" class="error-message">Erreur lors du chargement des réservations</td></tr>`;
+        const row = document.createElement('tr');
+        const cell = InnDesk.utils.createElement('td', {
+            className: 'error-message',
+            text: 'Erreur lors du chargement des réservations'
+        });
+        cell.colSpan = 6;
+        row.appendChild(cell);
+        tbody.replaceChildren(row);
     }
 }
 
@@ -190,7 +211,7 @@ async function loadRoomStatus() {
     try {
         const rooms = await InnDesk.api.rooms.getAll();
         const roomsGrid = document.getElementById('roomsGrid');
-        roomsGrid.innerHTML = '';
+        roomsGrid.replaceChildren();
 
         if (rooms.length === 0) {
             InnDesk.utils.showError(roomsGrid, 'Aucune chambre trouvée');
@@ -202,14 +223,15 @@ async function loadRoomStatus() {
             rooms.forEach(room => {
                 const roomCard = document.createElement('div');
                 roomCard.className = `room-card status-${room.status}`;
-                roomCard.innerHTML = `
-                    <div style="font-weight: 600; margin-bottom: 4px;">Chambre ${room.number}</div>
-                    <div style="font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 8px;">
-                        Étage ${room.floor} · ${room.room_type?.name || 'Type inconnu'}
-                    </div>
-                    <div></div>
-                `;
-                roomCard.lastElementChild.appendChild(InnDesk.utils.createStatusBadge(room.status));
+                const number = InnDesk.utils.createElement('div', { text: `Chambre ${room.number}` });
+                number.style.cssText = 'font-weight: 600; margin-bottom: 4px;';
+                const details = InnDesk.utils.createElement('div', {
+                    text: `Étage ${room.floor} · ${room.room_type?.name || 'Type inconnu'}`
+                });
+                details.style.cssText = 'font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 8px;';
+                const badgeContainer = document.createElement('div');
+                badgeContainer.appendChild(InnDesk.utils.createStatusBadge(room.status));
+                roomCard.append(number, details, badgeContainer);
                 roomsGrid.appendChild(roomCard);
             });
         }

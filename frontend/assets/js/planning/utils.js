@@ -11,7 +11,7 @@ function toLocalMidnight(date) {
 // Format range label: "25/06 – 08/07/2026"
 function formatRangeLabel(startDate) {
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + DAYS_IN_WINDOW - 1);
+    endDate.setDate(endDate.getDate() + daysInWindow - 1);
 
     const fmt = (d) => {
         const dd = String(d.getDate()).padStart(2, '0');
@@ -34,10 +34,10 @@ function isWeekendDate(date) {
     return day === 0 || day === 6;
 }
 
-// Generate the 14-day window starting from currentWindowStart
+// Generate the selected date window starting from currentWindowStart
 function getWindowDays() {
     const days = [];
-    for (let i = 0; i < DAYS_IN_WINDOW; i++) {
+    for (let i = 0; i < daysInWindow; i++) {
         const d = new Date(currentWindowStart);
         d.setDate(d.getDate() + i);
         d.setHours(0, 0, 0, 0);
@@ -65,7 +65,9 @@ function reservationOverlapsDay(reservation, day) {
 // Update the range label in the DOM and URL hash
 function updateRangeLabel() {
     const label = formatRangeLabel(currentWindowStart);
-    document.getElementById('weekLabel').textContent = label;
+    const labelElement = document.getElementById('pgWindowLabel');
+    if (labelElement) labelElement.textContent = label;
     const hashDate = currentWindowStart.toISOString().split('T')[0];
-    window.location.hash = hashDate;
+    const nextUrl = `${window.location.pathname}${window.location.search}#${hashDate}`;
+    window.history.replaceState(null, '', nextUrl);
 }

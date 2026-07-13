@@ -19,3 +19,31 @@ function goToToday() {
     updateRangeLabel();
     loadPlanningData();
 }
+
+function setWindowSize(size) {
+    if (![7, 14, 28].includes(size) || size === daysInWindow) return;
+    daysInWindow = size;
+    updateRangeLabel();
+    updateWindowSizeButtons();
+    loadPlanningData();
+}
+
+function updateWindowSizeButtons() {
+    [7, 14, 28].forEach(size => {
+        const button = document.getElementById(`pgBtn${size}`);
+        if (!button) return;
+        const isActive = size === daysInWindow;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+function closePlanningDetail() {
+    const overlay = document.getElementById('pgDetailOverlay');
+    const modal = document.getElementById('pgDetailModal');
+    if (overlay) {
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+    if (modal) modal.classList.remove('show');
+}

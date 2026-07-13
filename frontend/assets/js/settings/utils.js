@@ -39,17 +39,23 @@ window.SettingsUtils = {
         return labels[role] || role;
     },
     
-    // Get role badge HTML
+    // Build a role badge without parsing API data as HTML
     getRoleBadge(role) {
         const variant = role === 'admin' ? 'primary' : 'secondary';
-        return `<span class="badge badge-${variant}">${this.getRoleLabel(role)}</span>`;
+        const badge = document.createElement('span');
+        badge.className = `badge badge-${variant}`;
+        badge.textContent = this.getRoleLabel(role);
+        return badge;
     },
     
-    // Get status badge HTML
+    // Build a status badge
     getStatusBadge(isActive) {
         const variant = isActive ? 'success' : 'danger';
         const label = isActive ? 'Actif' : 'Inactif';
-        return `<span class="badge badge-${variant}">${label}</span>`;
+        const badge = document.createElement('span');
+        badge.className = `badge badge-${variant}`;
+        badge.textContent = label;
+        return badge;
     },
     
     // Get user initials for avatar
@@ -160,7 +166,11 @@ window.SettingsUtils = {
             if (settings.hotel_email) addressParts.push(`Email: ${settings.hotel_email}`);
             if (settings.hotel_siret) addressParts.push(`SIRET: ${settings.hotel_siret}`);
             
-            addressElement.innerHTML = addressParts.join('<br>');
+            addressElement.replaceChildren();
+            addressParts.forEach((part, index) => {
+                if (index > 0) addressElement.appendChild(document.createElement('br'));
+                addressElement.appendChild(document.createTextNode(part));
+            });
         }
     }
 };

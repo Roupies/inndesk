@@ -48,27 +48,37 @@ async function openAssignRoomModal(reservation) {
         );
 
         if (availableRooms.length === 0) {
-            content.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: var(--space-4);">Aucune chambre disponible — vérifiez les dates</p>';
+            setAssignRoomMessage(content, 'Aucune chambre disponible — vérifiez les dates', 'var(--text-muted)');
             document.getElementById('assignRoomBtn').disabled = true;
         } else {
-            const roomsList = availableRooms.map(room => `
-                <div class="room-radio-item">
-                    <input type="radio" name="selectedRoom" value="${room.id}" id="room_${room.id}">
-                    <label for="room_${room.id}">Chambre ${room.number} — Étage ${room.floor}</label>
-                </div>
-            `).join('');
-
-            content.innerHTML = `
-                <div class="room-radio-list">
-                    ${roomsList}
-                </div>
-            `;
+            const roomsList = InnDesk.utils.createElement('div', { className: 'room-radio-list' });
+            availableRooms.forEach((room, index) => {
+                const item = InnDesk.utils.createElement('div', { className: 'room-radio-item' });
+                const input = document.createElement('input');
+                const inputId = `assign_room_${index}`;
+                input.type = 'radio';
+                input.name = 'selectedRoom';
+                input.value = String(room.id);
+                input.id = inputId;
+                const label = document.createElement('label');
+                label.htmlFor = inputId;
+                label.textContent = `Chambre ${room.number} — Étage ${room.floor}`;
+                item.append(input, label);
+                roomsList.appendChild(item);
+            });
+            content.replaceChildren(roomsList);
             document.getElementById('assignRoomBtn').disabled = false;
         }
     } catch (error) {
-        content.innerHTML = '<p style="color: var(--color-maintenance); text-align: center; padding: var(--space-4);">Erreur lors du chargement des chambres disponibles</p>';
+        setAssignRoomMessage(content, 'Erreur lors du chargement des chambres disponibles', 'var(--color-maintenance)');
         document.getElementById('assignRoomBtn').disabled = true;
     }
+}
+
+function setAssignRoomMessage(content, message, color) {
+    const paragraph = InnDesk.utils.createElement('p', { text: message });
+    paragraph.style.cssText = `color: ${color}; text-align: center; padding: var(--space-4);`;
+    content.replaceChildren(paragraph);
 }
 
 function closeAssignRoomModal() {
@@ -99,7 +109,7 @@ function openStatusChangeModal(reservation) {
     const currentBadge = document.getElementById('currentStatusBadge');
     const newStatusSelect = document.getElementById('newStatus');
 
-    currentBadge.innerHTML = '';
+    currentBadge.replaceChildren();
     currentBadge.appendChild(InnDesk.utils.createStatusBadge(reservation.status));
 
     const transitions = {
@@ -108,14 +118,20 @@ function openStatusChangeModal(reservation) {
     };
 
     const allowedStatuses = transitions[reservation.status] || [];
-    newStatusSelect.innerHTML = '';
+    newStatusSelect.replaceChildren();
 
     if (allowedStatuses.length === 0) {
-        newStatusSelect.innerHTML = '<option value="">Aucun changement autorisé</option>';
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Aucun changement autorisé';
+        newStatusSelect.appendChild(option);
         newStatusSelect.disabled = true;
     } else {
         newStatusSelect.disabled = false;
-        newStatusSelect.innerHTML = '<option value="">Sélectionner un nouveau statut...</option>';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Sélectionner un nouveau statut...';
+        newStatusSelect.appendChild(placeholder);
         
         allowedStatuses.forEach(status => {
             // Check if trying to check-in without room assignment
@@ -144,110 +160,107 @@ function closeStatusChangeModal() {
 }
 
 function openDetailModal(reservation) {
-    const modal = document.getElementById('detailReservationModal');
-    const title = document.getElementById('detailModalTitle');
-    const grid = document.getElementById('detailGrid');
+    const overlay = document.getElementById('drawerOverlay');
+    const drawer = document.getElementById('reservationDrawer');
+    const reservationId = document.getElementById('drawerResId');
+    const body = document.getElementById('drawerBody');
+    const actions = document.getElementById('drawerActions');
+    if (!overlay || !drawer || !reservationId || !body || !actions) return;
 
-    title.textContent = `Réservation #${reservation.id}`;
+    reservationId.textContent = String(reservation.id);
+    InnDesk.utils.clearElement(body);
+    InnDesk.utils.clearElement(actions);
 
-    const nights = calculateNights(reservation.check_in_date, reservation.check_out_date);
+    const section = document.createElement('section');
+    const title = document.createElement('h3');
+    title.className = 'drawer-section-title';
+    title.textContent = 'Détails du séjour';
+    const grid = document.createElement('div');
+    grid.className = 'drawer-field-grid';
+    const fields = [
+        ['Client', `${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}`.trim()],
+        ['Email', reservation.client?.email || '—'],
+        ['Téléphone', reservation.client?.phone || '—'],
+        ['Catégorie', reservation.room_type?.name || 'Type inconnu'],
+        ['Chambre', reservation.room?.number ? `N° ${reservation.room.number}` : 'Non assignée'],
+        ['Arrivée', InnDesk.utils.formatDate(reservation.check_in_date)],
+        ['Départ', InnDesk.utils.formatDate(reservation.check_out_date)],
+        ['Nuits', calculateNights(reservation.check_in_date, reservation.check_out_date)],
+        ['Adultes', reservation.adults ?? '—'],
+        ['Enfants', reservation.children ?? '—'],
+        ['Montant', reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—']
+    ];
+    fields.forEach(([label, value]) => {
+        const field = document.createElement('div');
+        field.className = 'drawer-field';
+        const labelElement = document.createElement('span');
+        labelElement.className = 'drawer-field-label';
+        labelElement.textContent = label;
+        const valueElement = document.createElement('span');
+        valueElement.className = 'drawer-field-value';
+        valueElement.textContent = String(value);
+        field.append(labelElement, valueElement);
+        grid.appendChild(field);
+    });
+    section.append(title, grid);
+    body.appendChild(section);
 
-    grid.innerHTML = `
-        <div class="detail-item">
-            <div class="detail-label">Client</div>
-            <div class="detail-value">${reservation.client?.first_name || ''} ${reservation.client?.last_name || 'Client inconnu'}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Email</div>
-            <div class="detail-value">${reservation.client?.email || '—'}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Téléphone</div>
-            <div class="detail-value">${reservation.client?.phone || '—'}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Catégorie</div>
-            <div class="detail-value">${reservation.room_type?.name || 'Type inconnu'} (${reservation.room_type?.price_per_night ? InnDesk.utils.formatCurrency(reservation.room_type.price_per_night) + '/nuit' : ''})</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Chambre</div>
-            <div class="detail-value">${reservation.room?.number ? 'N°' + reservation.room.number : 'Non assignée'}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Étage</div>
-            <div class="detail-value">${reservation.room?.floor || '—'}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Arrivée</div>
-            <div class="detail-value">${InnDesk.utils.formatDate(reservation.check_in_date)}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Départ</div>
-            <div class="detail-value">${InnDesk.utils.formatDate(reservation.check_out_date)}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Nuits</div>
-            <div class="detail-value">${nights}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Adultes</div>
-            <div class="detail-value">${reservation.adults}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Enfants</div>
-            <div class="detail-value">${reservation.children}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Statut</div>
-            <div class="detail-value"></div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Montant</div>
-            <div class="detail-value">${reservation.total_amount ? InnDesk.utils.formatCurrency(reservation.total_amount) : '—'}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Créée le</div>
-            <div class="detail-value">${InnDesk.utils.formatDateTime(reservation.created_at)}</div>
-        </div>
-    `;
+    const statusSection = document.createElement('section');
+    const statusTitle = document.createElement('h3');
+    statusTitle.className = 'drawer-section-title';
+    statusTitle.textContent = 'Statut';
+    statusSection.append(statusTitle, InnDesk.utils.createStatusBadge(reservation.status));
+    body.appendChild(statusSection);
 
-    // Add status badge to detail
-    const statusBadge = InnDesk.utils.createStatusBadge(reservation.status);
-    grid.querySelector('.detail-item:nth-child(12) .detail-value').appendChild(statusBadge);
-
-    // Add notes if present
     if (reservation.notes) {
-        const notesItem = document.createElement('div');
-        notesItem.className = 'detail-item full-width';
-        notesItem.innerHTML = `
-            <div class="detail-label">Notes</div>
-            <div class="detail-value">${reservation.notes}</div>
-        `;
-        grid.appendChild(notesItem);
+        const notesSection = document.createElement('section');
+        const notesTitle = document.createElement('h3');
+        notesTitle.className = 'drawer-section-title';
+        notesTitle.textContent = 'Notes';
+        const notes = document.createElement('p');
+        notes.textContent = reservation.notes;
+        notesSection.append(notesTitle, notes);
+        body.appendChild(notesSection);
     }
 
-    modal.classList.add('show');
+    overlay.classList.add('open');
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
 }
 
 function closeDetailModal() {
-    document.getElementById('detailReservationModal').classList.remove('show');
+    const overlay = document.getElementById('drawerOverlay');
+    const drawer = document.getElementById('reservationDrawer');
+    if (overlay) overlay.classList.remove('open');
+    if (drawer) {
+        drawer.classList.remove('open');
+        drawer.setAttribute('aria-hidden', 'true');
+    }
 }
 
 // Delete confirmation
 function showDeleteConfirmation(reservationId, row) {
     const confirmRow = document.createElement('tr');
     confirmRow.className = 'confirm-delete-row';
-    confirmRow.innerHTML = `
-        <td colspan="10" style="text-align: center; padding: var(--space-4); background: var(--color-maintenance); color: white;">
-            Supprimer cette réservation ?
-            <button class="btn btn-ghost btn-sm" style="margin-left: var(--space-3); color: white; border-color: white;" onclick="confirmDelete(${reservationId})">
-                Confirmer
-            </button>
-            <button class="btn btn-ghost btn-sm" style="margin-left: var(--space-2); color: white; border-color: white;" onclick="cancelDelete(this)">
-                Annuler
-            </button>
-        </td>
-    `;
+    const cell = document.createElement('td');
+    cell.colSpan = 10;
+    cell.style.cssText = 'text-align: center; padding: var(--space-4); background: var(--color-maintenance); color: white;';
+    const confirmButton = InnDesk.utils.createElement('button', {
+        className: 'btn btn-ghost btn-sm',
+        text: 'Confirmer',
+        attributes: { type: 'button' }
+    });
+    confirmButton.style.cssText = 'margin-left: var(--space-3); color: white; border-color: white;';
+    confirmButton.addEventListener('click', () => confirmDelete(reservationId));
+    const cancelButton = InnDesk.utils.createElement('button', {
+        className: 'btn btn-ghost btn-sm',
+        text: 'Annuler',
+        attributes: { type: 'button' }
+    });
+    cancelButton.style.cssText = 'margin-left: var(--space-2); color: white; border-color: white;';
+    cancelButton.addEventListener('click', () => cancelDelete(cancelButton));
+    cell.append(document.createTextNode('Supprimer cette réservation ?'), confirmButton, cancelButton);
+    confirmRow.appendChild(cell);
 
     row.parentNode.insertBefore(confirmRow, row.nextSibling);
     row.style.display = 'none';

@@ -4,4 +4,4 @@ let currentWindowStart = new Date();
 let rooms = [];
 let reservations = [];
 
-const DAYS_IN_WINDOW = 14;
+let daysInWindow = 14;

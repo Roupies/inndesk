@@ -270,22 +270,39 @@
         const read = getReadIds();
 
         if (notifications.length === 0) {
-            list.innerHTML = '<li class="notif-empty">Aucune notification</li>';
+            const empty = document.createElement('li');
+            empty.className = 'notif-empty';
+            empty.textContent = 'Aucune notification';
+            list.replaceChildren(empty);
             return;
         }
 
-        list.innerHTML = '';
+        list.replaceChildren();
         notifications.forEach(n => {
             const li = document.createElement('li');
             li.className = 'notif-item' + (read.has(n.id) ? ' read' : '');
             li.setAttribute('role', 'menuitem');
-            li.innerHTML = `
-                <div class="notif-icon notif-icon--${n.type}" aria-hidden="true">${n.emoji}</div>
-                <div class="notif-body">
-                    <p class="notif-msg">${n.message}</p>
-                    <span class="notif-time">Aujourd'hui</span>
-                </div>
-            `;
+
+            const icon = document.createElement('div');
+            const supportedTypes = new Set(['arrival', 'departure', 'dirty']);
+            const type = supportedTypes.has(n.type) ? n.type : 'arrival';
+            icon.className = `notif-icon notif-icon--${type}`;
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = n.emoji;
+
+            const body = document.createElement('div');
+            body.className = 'notif-body';
+
+            const message = document.createElement('p');
+            message.className = 'notif-msg';
+            message.textContent = n.message;
+
+            const time = document.createElement('span');
+            time.className = 'notif-time';
+            time.textContent = "Aujourd'hui";
+
+            body.append(message, time);
+            li.append(icon, body);
             list.appendChild(li);
         });
     }

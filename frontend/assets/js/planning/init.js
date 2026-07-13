@@ -3,73 +3,49 @@
 
 InnDesk.auth.redirectIfNotAuth();
 
-// Set window start to today (midnight)
 currentWindowStart = new Date();
 currentWindowStart.setHours(0, 0, 0, 0);
 
-// Handle URL hash: restore previous window position
 if (window.location.hash) {
-    const hashDate = window.location.hash.substring(1);
-    const parsed = new Date(hashDate);
-    if (!isNaN(parsed)) {
+    const parsed = new Date(window.location.hash.substring(1));
+    if (!Number.isNaN(parsed.getTime())) {
         currentWindowStart = parsed;
         currentWindowStart.setHours(0, 0, 0, 0);
     }
 }
 
-// Load user information
+function bindPlanningClick(id, handler) {
+    const element = document.getElementById(id);
+    if (element) element.addEventListener('click', handler);
+}
+
 async function loadUserInfo() {
+    const userName = document.getElementById('userName');
+    const userRole = document.getElementById('userRole');
     try {
         const currentUser = await InnDesk.auth.ensureCurrentUser();
-        if (currentUser) {
-            document.getElementById('userName').textContent = currentUser.full_name;
-            document.getElementById('userRole').textContent = InnDesk.utils.statusLabel(currentUser.role);
-        } else {
-            document.getElementById('userName').textContent = 'Utilisateur';
-            document.getElementById('userRole').textContent = '';
-        }
+        if (userName) userName.textContent = currentUser?.full_name || 'Utilisateur';
+        if (userRole) userRole.textContent = currentUser ? InnDesk.utils.statusLabel(currentUser.role) : '';
     } catch (error) {
-        document.getElementById('userName').textContent = 'Utilisateur';
-        document.getElementById('userRole').textContent = '';
+        if (userName) userName.textContent = 'Utilisateur';
+        if (userRole) userRole.textContent = '';
     }
 }
 
-// Theme toggle
-const themeToggle = document.getElementById('themeToggle');
-const themeIconLight = document.getElementById('themeIconLight');
-const themeIconDark = document.getElementById('themeIconDark');
+bindPlanningClick('pgPrev', goToPreviousWeek);
+bindPlanningClick('pgNext', goToNextWeek);
+bindPlanningClick('pgToday', goToToday);
+[7, 14, 28].forEach(size => bindPlanningClick(`pgBtn${size}`, () => setWindowSize(size)));
+bindPlanningClick('pgDetailClose', closePlanningDetail);
+bindPlanningClick('pgDetailOverlay', closePlanningDetail);
+bindPlanningClick('themeToggle', () => InnDesk.utils.toggleTheme());
+bindPlanningClick('logoutButton', () => InnDesk.api.auth.logout());
 
-function updateThemeIcon() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    if (currentTheme === 'light') {
-        themeIconLight.style.display = 'none';
-        themeIconDark.style.display = 'block';
-    } else {
-        themeIconLight.style.display = 'block';
-        themeIconDark.style.display = 'none';
-    }
-}
-
-// Event listeners
-document.getElementById('prevWeekBtn').addEventListener('click', goToPreviousWeek);
-document.getElementById('nextWeekBtn').addEventListener('click', goToNextWeek);
-document.getElementById('todayBtn').addEventListener('click', goToToday);
-
-themeToggle.addEventListener('click', () => {
-    InnDesk.utils.toggleTheme();
-    updateThemeIcon();
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closePlanningDetail();
 });
 
-document.getElementById('logoutButton').addEventListener('click', () => {
-    InnDesk.api.auth.logout();
-});
-
-// Initialize
 loadUserInfo();
-updateThemeIcon();
+updateWindowSizeButtons();
 updateRangeLabel();
 loadPlanningData();
-
-if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
-}
