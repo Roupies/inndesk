@@ -19,7 +19,10 @@ def find_available_room(
     """
     rooms = db.query(Room).filter(
         Room.room_type_id == room_type_id,
-        Room.status == "available"
+        # A room that is occupied, dirty or being cleaned now can still be
+        # assigned to a non-overlapping future stay. Maintenance is the only
+        # operational status that removes it from inventory.
+        Room.status != "maintenance"
     ).with_for_update(skip_locked=True).all()
 
     for room in rooms:

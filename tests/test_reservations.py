@@ -153,6 +153,62 @@ def test_create_without_room_id_assigns_distinct_available_rooms(
         assert stored_response.json()["room"]["id"] == response.json()["room_id"]
 
 
+def test_automatic_assignment_allows_dirty_room_for_future_stay(
+    client, admin_token, reception_token, auth_headers
+):
+    """A current housekeeping status must not block a future reservation."""
+    admin_headers = auth_headers(admin_token)
+    reception_headers = auth_headers(reception_token)
+
+    room_type = client.post(
+        "/api/v1/room-types/",
+        headers=admin_headers,
+        json={
+            "name": "Future Dirty Assignment Type",
+            "description": "Future booking test",
+            "price_per_night": "90.00",
+            "max_occupancy": 2,
+        },
+    ).json()
+    room = client.post(
+        "/api/v1/rooms/",
+        headers=admin_headers,
+        json={
+            "number": "AUTO-DIRTY",
+            "floor": 1,
+            "room_type_id": room_type["id"],
+            "status": "dirty",
+        },
+    ).json()
+    guest = client.post(
+        "/api/v1/clients/",
+        headers=reception_headers,
+        json={
+            "first_name": "Future",
+            "last_name": "Guest",
+            "email": "future.dirty.assignment@test.com",
+        },
+    ).json()
+
+    check_in = date.today() + timedelta(days=30)
+    response = client.post(
+        "/api/v1/reservations/",
+        headers=reception_headers,
+        json={
+            "client_id": guest["id"],
+            "room_type_id": room_type["id"],
+            "check_in_date": str(check_in),
+            "check_out_date": str(check_in + timedelta(days=2)),
+            "adults": 1,
+            "children": 0,
+            "status": "confirmed",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["room_id"] == room["id"]
+
+
 def test_create_reservation_invalid_dates(client, admin_token, reception_token, auth_headers):
     """Test creating reservation with check_out <= check_in returns 400"""
     admin_headers = auth_headers(admin_token)

@@ -38,7 +38,10 @@ def get_available_rooms(
 ):
     rooms = db.query(Room).options(joinedload(Room.room_type)).filter(
         Room.room_type_id == room_type_id,
-        Room.status == "available"
+        # Housekeeping statuses describe the room's current condition. They
+        # must not prevent a future booking; only maintenance takes a room out
+        # of the sellable inventory.
+        Room.status != "maintenance"
     ).all()
 
     available = []

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import date, timedelta
 
 
 def test_create_room_type(client, admin_token, auth_headers):
@@ -201,6 +202,59 @@ def test_filter_rooms_by_status(client, admin_token, auth_headers):
     room_numbers = [room["number"] for room in data]
     assert "301" in room_numbers
     assert "302" not in room_numbers
+
+
+def test_future_availability_ignores_current_housekeeping_status(
+    client, admin_token, reception_token, auth_headers
+):
+    """Dirty/occupied rooms remain sellable; maintenance rooms do not."""
+    admin_headers = auth_headers(admin_token)
+    reception_headers = auth_headers(reception_token)
+
+    room_type = client.post(
+        "/api/v1/room-types/",
+        headers=admin_headers,
+        json={
+            "name": "Future Availability Type",
+            "description": "Current condition must not block future sales",
+            "price_per_night": "100.00",
+            "max_occupancy": 2,
+        },
+    ).json()
+
+    expected_numbers = {"FUT-DIRTY", "FUT-CLEAN", "FUT-OCC"}
+    for number, room_status in (
+        ("FUT-DIRTY", "dirty"),
+        ("FUT-CLEAN", "cleaning"),
+        ("FUT-OCC", "occupied"),
+        ("FUT-MAINT", "maintenance"),
+    ):
+        response = client.post(
+            "/api/v1/rooms/",
+            headers=admin_headers,
+            json={
+                "number": number,
+                "floor": 1,
+                "room_type_id": room_type["id"],
+                "status": room_status,
+            },
+        )
+        assert response.status_code == 201
+
+    check_in = date.today() + timedelta(days=30)
+    check_out = check_in + timedelta(days=2)
+    response = client.get(
+        "/api/v1/rooms/available/",
+        headers=reception_headers,
+        params={
+            "room_type_id": room_type["id"],
+            "check_in": str(check_in),
+            "check_out": str(check_out),
+        },
+    )
+
+    assert response.status_code == 200
+    assert {room["number"] for room in response.json()} == expected_numbers
 
 
 def test_delete_room_type_with_rooms(client, admin_token, auth_headers):
